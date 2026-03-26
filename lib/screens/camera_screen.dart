@@ -1,11 +1,10 @@
+import 'dart:io';
 import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart'; // Needed for WriteBuffer
-import 'package:cambio_live/main.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
-import '../models/currency.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -19,10 +18,19 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   bool _isCameraInitialized = false;
   final TextRecognizer _textRecognizer = TextRecognizer();
   bool _isProcessing = false;
-  
-  String _detectedText = "";
-  double? _detectedValue;
+
+  // Variables de estabilidad
+  String _stableText = "";
+  double? _stableValue;
   double? _convertedValue;
+  
+  // Buffer para votación (almacena las últimas detecciones)
+  final List<String> _detectionHistory = [];
+  final int _historyLimit = 5; // Guardamos los últimos 5 frames
+  final int _consensusThreshold = 3; // Requerimos que se repita 3 veces
+
+  final double rectWidth = 300;
+  final double rectHeight = 180;
 
   @override
   void initState() {
@@ -35,127 +43,145 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     final cameras = await availableCameras();
     if (cameras.isEmpty) return;
 
-    final firstCamera = cameras.first;
     _controller = CameraController(
-      firstCamera,
+      cameras.first,
       ResolutionPreset.high,
       enableAudio: false,
+      imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.yuv420 : ImageFormatGroup.bgra8888,
     );
 
-    await _controller!.initialize();
-    if (!mounted) return;
-
-    setState(() {
-      _isCameraInitialized = true;
-    });
-
-    _controller!.startImageStream(_processImage);
+    try {
+      await _controller!.initialize();
+      if (!mounted) return;
+      try { await _controller!.setFocusMode(FocusMode.auto); } catch (_) {}
+      setState(() { _isCameraInitialized = true; });
+      _controller!.startImageStream(_processImage);
+    } catch (e) {
+      debugPrint("Error cámara: $e");
+    }
   }
 
   Future<void> _processImage(CameraImage image) async {
-    if (_isProcessing) return;
+    if (_isProcessing || !mounted) return;
     _isProcessing = true;
 
     try {
       final inputImage = _inputImageFromCameraImage(image);
-      if (inputImage == null) return;
+      if (inputImage == null) {
+        _isProcessing = false;
+        return;
+      }
 
       final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+      final screenSize = MediaQuery.of(context).size;
       
-      // Simple logic to find the first price-like string
-      // Regex for price: (Symbol)?\s*\d+[.,]?\d*
-      // This is basic and might need refinement
-      
-      String foundText = "";
-      double? foundValue;
+      final double imageWidth = image.height.toDouble();
+      final double imageHeight = image.width.toDouble();
+      final double scaleX = imageWidth / screenSize.width;
+      final double scaleY = imageHeight / screenSize.height;
 
+      final Rect roiRect = Rect.fromLTWH(
+        ((screenSize.width - rectWidth) / 2) * scaleX,
+        ((screenSize.height - rectHeight) / 2) * scaleY,
+        rectWidth * scaleX,
+        rectHeight * scaleY,
+      );
+
+      String? frameDetection;
+
+      // Buscamos el mejor candidato a precio dentro del área
       for (TextBlock block in recognizedText.blocks) {
         for (TextLine line in block.lines) {
-          // Attempt to parse money
-          final text = line.text;
-          // Basic regex to find numbers
-          final RegExp regExp = RegExp(r'\d+[.,]?\d*');
-          final match = regExp.firstMatch(text);
-          if (match != null) {
-            String numStr = match.group(0)!.replaceAll(',', '.'); // Normalize
-            // Handle cases like 1.000,00 vs 1,000.00 is hard without locale, assuming dot for decimal for now or simplistic approach
-            try {
-              double val = double.parse(numStr);
-              foundValue = val;
-              foundText = text;
-              break; // Take the first one found
-            } catch (e) {
-              // ignore
+          if (roiRect.contains(line.boundingBox.center)) {
+            // Regex para buscar números (soporta 15,90 15.90 o 1500)
+            final RegExp regExp = RegExp(r'\d+([.,]\d{1,2})?');
+            final match = regExp.firstMatch(line.text);
+            if (match != null) {
+              frameDetection = match.group(0);
+              break;
             }
           }
         }
-        if (foundValue != null) break;
+        if (frameDetection != null) break;
       }
 
-      if (foundValue != null) {
-        final provider = Provider.of<AppProvider>(context, listen: false);
-        final converted = provider.convert(foundValue);
-        
-        if (mounted) {
-           setState(() {
-            _detectedText = foundText;
-            _detectedValue = foundValue;
-            _convertedValue = converted;
-          });
-        }
+      if (frameDetection != null) {
+        _updateStableDetection(frameDetection);
       }
 
     } catch (e) {
-      print('Error processing image: $e');
+      debugPrint("Error OCR: $e");
     } finally {
       _isProcessing = false;
     }
   }
 
+  // Lógica de Consenso para evitar saltos bruscos
+  void _updateStableDetection(String text) {
+    _detectionHistory.add(text);
+    if (_detectionHistory.length > _historyLimit) {
+      _detectionHistory.removeAt(0);
+    }
+
+    // Contamos ocurrencias en el historial
+    Map<String, int> counts = {};
+    for (var val in _detectionHistory) {
+      counts[val] = (counts[val] ?? 0) + 1;
+    }
+
+    // Buscamos si algún valor llegó al umbral de consenso
+    String? winner;
+    counts.forEach((val, count) {
+      if (count >= _consensusThreshold) {
+        winner = val;
+      }
+    });
+
+    if (winner != null && winner != _stableText && mounted) {
+      final double? val = double.tryParse(winner!.replaceAll(',', '.'));
+      if (val != null && val > 0) {
+        final provider = Provider.of<AppProvider>(context, listen: false);
+        setState(() {
+          _stableText = winner!;
+          _stableValue = val;
+          _convertedValue = provider.convert(val);
+        });
+      }
+    }
+  }
+
   InputImage? _inputImageFromCameraImage(CameraImage image) {
     if (_controller == null) return null;
+    try {
+      final camera = _controller!.description;
+      final rotation = InputImageRotationValue.fromRawValue(camera.sensorOrientation)
+          ?? InputImageRotation.rotation90deg;
+      
+      final plane = image.planes[0];
+      final bytes = plane.bytes;
+      final width = image.width;
+      final height = image.height;
+      final bytesPerRow = plane.bytesPerRow;
 
-    final camera = _controller!.description;
-    final sensorOrientation = camera.sensorOrientation;
-    
-    // Simple way to get orientation for Android/iOS
-    // This part often requires more robust handling for full rotation support
-    // but for portrait mode it's usually fixed.
-    final InputImageRotation rotation = InputImageRotation.rotation90deg; // Assuming portrait
+      final Uint8List cleanYPlane = Uint8List(width * height);
+      for (int y = 0; y < height; y++) {
+        cleanYPlane.setRange(y * width, (y + 1) * width, bytes.getRange(y * bytesPerRow, y * bytesPerRow + width));
+      }
 
-    final InputImageFormat format = InputImageFormat.nv21; // Android default
+      final Uint8List nv21Bytes = Uint8List(width * height * 3 ~/ 2);
+      nv21Bytes.setRange(0, width * height, cleanYPlane);
+      nv21Bytes.fillRange(width * height, nv21Bytes.length, 128);
 
-    // Basic Plane data extraction
-    final planes = image.planes.map((Plane plane) {
-      return InputImagePlaneMetadata(
-        bytesPerRow: plane.bytesPerRow,
-        height: plane.height,
-        width: plane.width,
+      return InputImage.fromBytes(
+        bytes: nv21Bytes,
+        metadata: InputImageMetadata(
+          size: Size(width.toDouble(), height.toDouble()),
+          rotation: rotation,
+          format: InputImageFormat.nv21,
+          bytesPerRow: width,
+        ),
       );
-    }).toList();
-
-    // Since basic flutter camera image is different per platform, 
-    // proper conversion requires handling bytes concatenation.
-    // For brevity and stability in this agent run, we acknowledge this is the complex part.
-    // However, google_mlkit_commons recommends a specific way.
-    
-    // For this demo, let's use the simplest path or acknowledge if it's too complex for single-file.
-    // Actually, let's inject the robust code.
-    
-    final WriteBuffer allBytes = WriteBuffer();
-    for (final Plane plane in image.planes) {
-      allBytes.putUint8List(plane.bytes);
-    }
-    final bytes = allBytes.done().buffer.asUint8List();
-
-    final inputImageData = InputImageData(
-      size: Size(image.width.toDouble(), image.height.toDouble()),
-      imageRotation: rotation,
-      inputImageFormat: format, // This might fail on iOS (bgra8888)
-      planeData: planes,
-    );
-
-    return InputImage.fromBytes(bytes: bytes, inputImageData: inputImageData);
+    } catch (e) { return null; }
   }
 
   @override
@@ -165,69 +191,94 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     _controller?.dispose();
     super.dispose();
   }
-  
-  // ignore: annotate_overrides
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Handle camera lifecycle
-  }
 
   @override
   Widget build(BuildContext context) {
     if (!_isCameraInitialized || _controller == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
-          CameraPreview(_controller!),
-          // Overlay
-          if (_convertedValue != null)
+          Positioned.fill(child: CameraPreview(_controller!)),
+          
+          // Rectángulo guía (Original Azul)
+          Center(
+            child: Container(
+              width: rectWidth,
+              height: rectHeight,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.8), width: 3),
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+          ),
+
+          // Fondo oscurecido
+          ColorFiltered(
+            colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.6), BlendMode.srcOut),
+            child: Stack(
+              children: [
+                Container(decoration: const BoxDecoration(color: Colors.transparent, backgroundBlendMode: BlendMode.dstOut)),
+                Center(
+                  child: Container(
+                    width: rectWidth,
+                    height: rectHeight,
+                    decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(15)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Tarjeta de Conversión (Original Estándar)
+          if (_stableValue != null)
             Positioned(
-              bottom: 100,
+              bottom: 40,
               left: 20,
               right: 20,
               child: Card(
-                color: Colors.black54,
+                color: Colors.black.withValues(alpha: 0.85),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'Detectado: $_detectedText',
-                        style: const TextStyle(color: Colors.white, fontSize: 16),
-                      ),
+                      Text('DETECTADO: $_stableText', style: const TextStyle(color: Colors.white70)),
                       const SizedBox(height: 5),
                       Text(
-                        '${Provider.of<AppProvider>(context).targetCurrency?.code} ${_convertedValue!.toStringAsFixed(2)}',
-                        style: const TextStyle(color: Colors.greenAccent, fontSize: 32, fontWeight: FontWeight.bold),
+                        '${Provider.of<AppProvider>(context).targetCurrency?.code} ${_convertedValue?.toStringAsFixed(2)}',
+                        style: const TextStyle(color: Colors.greenAccent, fontSize: 38, fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 10),
-                      ElevatedButton(
+                      const SizedBox(height: 15),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.add_shopping_cart),
+                        label: const Text('GUARDAR PRECIO'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 48),
+                        ),
                         onPressed: () {
-                          if (_detectedValue != null && _convertedValue != null) {
-                            Provider.of<AppProvider>(context, listen: false)
-                                .addToCart(_detectedValue!, _convertedValue!);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Guardado en el carrito!')),
-                            );
-                          }
+                          Provider.of<AppProvider>(context, listen: false)
+                              .addToCart(_stableValue!, _convertedValue!);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Guardado en el carrito'), behavior: SnackBarBehavior.floating),
+                          );
                         },
-                        child: const Text('Guardar'),
                       )
                     ],
                   ),
                 ),
               ),
             ),
-          // Back Button
+
           Positioned(
-            top: 40,
-            left: 20,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
-              onPressed: () => Navigator.pop(context),
-            ),
+            top: 40, left: 20,
+            child: IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.white), onPressed: () => Navigator.pop(context)),
           ),
         ],
       ),

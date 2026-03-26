@@ -10,7 +10,14 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cambio Live'),
+        title: Image.asset(
+          'assets/images/logo.png', // Ruta del logo
+          height: 40,
+          errorBuilder: (context, error, stackTrace) {
+            // Si la imagen no existe todavía, muestra el texto original como respaldo
+            return const Text('Cambio Live', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue));
+          },
+        ),
         centerTitle: true,
       ),
       body: Consumer<AppProvider>(
@@ -18,6 +25,11 @@ class HomeScreen extends StatelessWidget {
           if (provider.availableCurrencies.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
+
+          // Cálculo de la tasa unitaria para mostrar en el menú
+          final double unitRate = provider.convert(1.0);
+          final String baseCode = provider.baseCurrency?.code ?? '';
+          final String targetCode = provider.targetCurrency?.code ?? '';
 
           return Padding(
             padding: const EdgeInsets.all(20.0),
@@ -84,31 +96,60 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 60),
+                const SizedBox(height: 30),
+                // Tasa de cambio informativa
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                      const SizedBox(width: 10),
+                      Text(
+                        '1 $baseCode = ${unitRate.toStringAsFixed(2)} $targetCode',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
                 // Button to Camera
                 SizedBox(
                   width: double.infinity,
-                  height: 50,
+                  height: 55,
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.camera_alt),
                     label: const Text('Ir a la Cámara', style: TextStyle(fontSize: 18)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () {
                       Navigator.pushNamed(context, '/camera');
                     },
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 15),
                 // Button to Cart
                 SizedBox(
                   width: double.infinity,
-                  height: 50,
+                  height: 55,
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.shopping_cart),
                     label: const Text('Ver Carrito', style: TextStyle(fontSize: 18)),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                     onPressed: () {
                       Navigator.pushNamed(context, '/cart');
                     },

@@ -1,6 +1,6 @@
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
-import '../models/currency.dart';
 
 class CurrencyService {
   final String _baseUrl = 'https://api.exchangerate-api.com/v4/latest/';
@@ -17,7 +17,7 @@ class CurrencyService {
         return _getMockRates(baseCode);
       }
     } catch (e) {
-      print('Error fetching rates: $e');
+      debugPrint('Error fetching rates: $e');
       return _getMockRates(baseCode);
     }
   }

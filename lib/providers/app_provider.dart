@@ -9,7 +9,7 @@ class AppProvider with ChangeNotifier {
   Currency? _baseCurrency;
   Currency? _targetCurrency;
   Map<String, double> _rates = {};
-  List<CartItem> _cart = [];
+  final List<CartItem> _cart = [];
 
   Currency? get baseCurrency => _baseCurrency;
   Currency? get targetCurrency => _targetCurrency;
@@ -21,13 +21,14 @@ class AppProvider with ChangeNotifier {
     Currency(code: 'USD', name: 'US Dollar', rate: 1.0),
     Currency(code: 'EUR', name: 'Euro', rate: 1.0),
     Currency(code: 'BRL', name: 'Real Brasileiro', rate: 1.0),
+    Currency(code: 'ARS', name: 'Peso Argentino', rate: 1.0),
     Currency(code: 'GBP', name: 'British Pound', rate: 1.0),
     Currency(code: 'JPY', name: 'Japanese Yen', rate: 1.0),
   ];
 
   AppProvider() {
     _baseCurrency = availableCurrencies.firstWhere((c) => c.code == 'USD');
-    _targetCurrency = availableCurrencies.firstWhere((c) => c.code == 'EUR');
+    _targetCurrency = availableCurrencies.firstWhere((c) => c.code == 'ARS');
     fetchRates();
   }
 
