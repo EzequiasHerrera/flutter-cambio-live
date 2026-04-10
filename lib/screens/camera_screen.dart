@@ -73,6 +73,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       }
 
       final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+      if (!mounted) return;
       final screenSize = MediaQuery.of(context).size;
       
       final double imageWidth = image.height.toDouble();

@@ -64,13 +64,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: Image.asset(
           'assets/images/logo.png',
           height: 40,
           errorBuilder: (context, error, stackTrace) {
-            return const Text('Howmuch', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue));
+            return Text('Howmuch', style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.primary));
           },
         ),
         centerTitle: true,
@@ -124,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Expanded(
                                   child: provider.useCustomCurrency 
-                                    ? Text(provider.customName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue))
+                                    ? Text(provider.customName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: colorScheme.primary))
                                     : DropdownButtonHideUnderline(
                                         child: DropdownButton<Currency>(
                                           isExpanded: true,
@@ -140,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                 ),
                                 IconButton(
-                                  icon: Icon(Icons.edit_note, color: provider.useCustomCurrency ? Colors.orange : Colors.grey),
+                                  icon: Icon(Icons.edit_note, color: provider.useCustomCurrency ? colorScheme.secondary : Colors.grey),
                                   onPressed: () => _showCustomCurrencyDialog(provider),
                                   tooltip: 'Configurar Moneda Personalizada',
                                 )
@@ -155,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: provider.useCustomCurrency ? Colors.grey : Colors.blue,
+                              color: provider.useCustomCurrency ? Colors.grey : colorScheme.primary,
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.white, width: 2),
                             ),
@@ -169,19 +171,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
+                      color: colorScheme.primaryContainer.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                      border: Border.all(color: colorScheme.primaryContainer.withOpacity(0.3)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                        Icon(Icons.info_outline, color: colorScheme.primary, size: 20),
                         const SizedBox(width: 10),
                         Flexible(
                           child: Text(
                             '1 $baseCode = ${unitRate.toStringAsFixed(2)} $targetCode',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.blue),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colorScheme.primary),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -190,6 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 40),
                   _buildActionButton(
+                    context: context,
                     icon: Icons.camera_alt,
                     label: 'Ir a la Cámara',
                     onPressed: () => Navigator.pushNamed(context, '/camera'),
@@ -197,6 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 15),
                   _buildActionButton(
+                    context: context,
                     icon: Icons.shopping_cart,
                     label: 'Ver Carrito',
                     onPressed: () => Navigator.pushNamed(context, '/cart'),
@@ -228,7 +232,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildActionButton({required IconData icon, required String label, required VoidCallback onPressed, required bool isPrimary}) {
+  Widget _buildActionButton({required BuildContext context, required IconData icon, required String label, required VoidCallback onPressed, required bool isPrimary}) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return SizedBox(
       width: double.infinity,
       height: 55,
@@ -236,17 +242,15 @@ class _HomeScreenState extends State<HomeScreen> {
         ? ElevatedButton.icon(
             icon: Icon(icon),
             label: Text(label, style: const TextStyle(fontSize: 18)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
+            // Nota: El estilo ya viene definido en el theme global del main.dart
             onPressed: onPressed,
           )
         : OutlinedButton.icon(
             icon: Icon(icon),
             label: Text(label, style: const TextStyle(fontSize: 18)),
             style: OutlinedButton.styleFrom(
+              foregroundColor: colorScheme.primary,
+              side: BorderSide(color: colorScheme.primary),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: onPressed,
