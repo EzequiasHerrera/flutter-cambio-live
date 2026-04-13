@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/currency.dart';
+import 'package:lottie/lottie.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -93,6 +94,19 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  SizedBox(
+                    height: 200,
+                    child: Lottie.asset(
+                      'assets/animations/Howie_Home.json',
+                      repeat: true,
+                      animate: true,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        print("Error cargando a Howie $error");
+                        return const Icon(Icons.person, size: 100);
+                      },
+                    ),
+                  ),
                   const Text(
                     'Seleccione las Monedas',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
