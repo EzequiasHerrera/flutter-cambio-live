@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../providers/app_provider.dart';
 import '../models/currency.dart';
 import 'package:lottie/lottie.dart';
@@ -69,12 +70,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Image.asset(
-          'assets/images/logo.png',
+        title: SvgPicture.asset(
+          'assets/icon/ic_howmuch.svg',
           height: 40,
-          errorBuilder: (context, error, stackTrace) {
-            return Text('Howmuch', style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.primary));
-          },
+          placeholderBuilder: (BuildContext context) => Container(
+            padding: const EdgeInsets.all(8.0),
+            child: Text('Howmuch', style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.primary)),
+          ),
         ),
         centerTitle: true,
       ),

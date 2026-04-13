@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_svg: ^2.0.0
   cupertino_icons: ^1.0.8
   camera: ^0.11.3
   google_mlkit_text_recognition: ^0.15.0
@@ -39,6 +40,5 @@ flutter_native_splash:
 flutter:
   uses-material-design: true
   assets:
-    - assets/icon/ic_splash.png
-    - assets/icon/ic_brand.png
-    - assets/animations/Howie_Home.json
+    - assets/icon/
+    - assets/animations/

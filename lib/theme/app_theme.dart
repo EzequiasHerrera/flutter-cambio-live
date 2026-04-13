@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   static const Color myOrange = Color(0xFFFF9900);
-  static const Color background = Color(0xFFFBFBFB);
-  static const Color surface = Colors.white;
+  static const Color background = Color(0xFFFDF6F0);
+  static const Color surface = Color(0xFFFEF9F5);
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -32,7 +32,7 @@ class AppTheme {
           backgroundColor: myOrange,
           foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 55),
-          elevation: 0,
+          elevation: 3,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
