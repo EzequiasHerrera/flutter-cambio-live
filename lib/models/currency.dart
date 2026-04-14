@@ -1,19 +1,15 @@
 class Currency {
-  final String code; // USD, EUR, BRL
-  final String name; // United States Dollar
-  final double rate; // Exchange rate relative to base
+  final String code;
+  final String name;
 
-  Currency({
-    required this.code,
-    required this.name,
-    required this.rate,
-  });
+  Currency({required this.code, required this.name});
 
-  factory Currency.fromJson(Map<String, dynamic> json) {
-    return Currency(
-      code: json['code'],
-      name: json['name'] ?? '',
-      rate: (json['rate'] as num).toDouble(),
-    );
+  // Centralizamos el mapeo aquí
+  String get flagCode {
+    if (code == 'EUR') return 'EU'; // Excepción Euro
+    if (code == 'CUSTOM') return 'CUSTOM'; // Tu moneda personalizada
+
+    // Regla general: ARS -> AR, USD -> US
+    return code.length >= 2 ? code.substring(0, 2) : code;
   }
 }

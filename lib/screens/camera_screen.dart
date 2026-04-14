@@ -3,6 +3,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:howmuch/widgets/custom_app_bar.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 
@@ -200,6 +201,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     }
 
     return Scaffold(
+      appBar: const CustomAppBar(showCart: true),
       backgroundColor: Colors.black,
       body: Stack(
         children: [
@@ -276,13 +278,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                 ),
               ),
             ),
-
-          Positioned(
-            top: 40, left: 20,
-            child: IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.white), onPressed: () => Navigator.pop(context)),
-          ),
         ],
       ),
+      extendBodyBehindAppBar: true,
     );
   }
 }
