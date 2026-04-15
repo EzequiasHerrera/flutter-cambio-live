@@ -4,6 +4,7 @@ import 'package:howmuch/theme/app_theme.dart';
 import 'package:howmuch/widgets/action_button.dart';import 'package:howmuch/widgets/currency_card.dart';
 import 'package:howmuch/widgets/currency_icon.dart';
 import 'package:howmuch/widgets/custom_app_bar.dart';
+import 'package:howmuch/widgets/swap_button.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../providers/app_provider.dart';
@@ -109,7 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // SECCIÓN DE CARDS
+                  // 💱 SECCIÓN DE CARDS
                   Stack(
                     alignment: Alignment.center,
                     children: [
@@ -198,31 +199,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
 
-                      // BOTÓN SWAP
+                      // ⏺️ BOTÓN SWAP
                       Positioned(
-                        child: GestureDetector(
-                          onTap: provider.useCustomCurrency ? null : () => provider.swapCurrencies(),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: provider.useCustomCurrency ? Colors.grey : colorScheme.primary,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: colorScheme.surface, width: 4),
-                              boxShadow: [
-                                // Pasamos el colorScheme para que la sombra sepa qué color usar
-                                AppTheme.getHardShadow(colorScheme, isPrimary: false)
-                              ],
-                            ),
-                            child: const Icon(Icons.swap_calls_rounded, color: Colors.white, size: 28),
-                          ),
-                        ),
+                        child: SwapButton(),
                       ),
                     ],
                   ),
 
                   const SizedBox(height: 30),
 
-                  // BANNER DE INFORMACIÓN
+                  // ℹ️ BANNER DE INFORMACIÓN
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
                     decoration: BoxDecoration(
@@ -252,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 40),
 
-                  // BOTONES DE ACCIÓN
+                  // 📷🛒 BOTONES DE ACCIÓN
                   ActionButton(
                       icon: Icons.camera_alt,
                       label: 'Ir a la Cámara',

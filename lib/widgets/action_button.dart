@@ -41,6 +41,7 @@ class _ActionButtonState extends State<ActionButton> {
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
+
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 80),
         curve: Curves.easeOut,

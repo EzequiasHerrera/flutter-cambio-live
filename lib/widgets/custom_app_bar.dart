@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -12,8 +13,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return AppBar(
+      systemOverlayStyle: isDarkMode
+      ? SystemUiOverlayStyle.dark
+      : SystemUiOverlayStyle.light,
+
       // 1. Forzamos transparencia absoluta
       backgroundColor: Colors.transparent,
       elevation: 0,
