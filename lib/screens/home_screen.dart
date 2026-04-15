@@ -1,78 +1,21 @@
-import 'package:country_flags/country_flags.dart';
 import 'package:flutter/material.dart';
 import 'package:howmuch/theme/app_theme.dart';
-import 'package:howmuch/widgets/action_button.dart';import 'package:howmuch/widgets/currency_card.dart';
+import 'package:howmuch/widgets/action_button.dart';
+import 'package:howmuch/widgets/currency_card.dart';
 import 'package:howmuch/widgets/currency_icon.dart';
 import 'package:howmuch/widgets/custom_app_bar.dart';
+import 'package:howmuch/widgets/howie.dart';
 import 'package:howmuch/widgets/swap_button.dart';
+import 'package:howmuch/widgets/custom_currency_dialog.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../providers/app_provider.dart';
 import '../models/currency.dart';
-import 'package:lottie/lottie.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  final TextEditingController _customNameController = TextEditingController();
-  final TextEditingController _customRateController = TextEditingController();
-
-  @override
-  void dispose() {
-    _customNameController.dispose();
-    _customRateController.dispose();
-    super.dispose();
-  }
-
-  void _showCustomCurrencyDialog(AppProvider provider) {
-    _customNameController.text = provider.customName;
-    _customRateController.text = provider.customRate.toString();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Moneda Personalizada'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _customNameController,
-              decoration: const InputDecoration(labelText: 'Nombre (ej: Dolar Pepino)'),
-            ),
-            TextField(
-              controller: _customRateController,
-              decoration: const InputDecoration(labelText: 'Valor (Tasa de cambio)'),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final name = _customNameController.text;
-              final rate = double.tryParse(_customRateController.text) ?? 1.0;
-              provider.setCustomCurrency(name, rate);
-              Navigator.pop(context);
-            },
-            child: const Text('Guardar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // 1. Recuperamos el esquema de colores actual (Soporta Light/Dark)
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -95,22 +38,13 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(
-                    height: 180,
-                    child: Lottie.asset(
-                      'assets/animations/Howie_Home.json',
-                      repeat: true,
-                      animate: true,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
+                  const SizedBox(height: 200, child: Howie()),
                   const Text(
                     'Vamos de compras?',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 20),
 
-                  // 💱 SECCIÓN DE CARDS
                   Stack(
                     alignment: Alignment.center,
                     children: [
@@ -177,14 +111,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   ),
                                 ),
-                                // BOTONES DE ACCIÓN (EDITAR / ELIMINAR)
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
                                       icon: Icon(Icons.edit_rounded,
                                           color: provider.useCustomCurrency ? colorScheme.primary : Colors.grey),
-                                      onPressed: () => _showCustomCurrencyDialog(provider),
+                                      onPressed: () => CustomCurrencyDialog.show(context), // Llamada limpia
                                     ),
                                     if (provider.useCustomCurrency)
                                       IconButton(
@@ -198,17 +131,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-
-                      // ⏺️ BOTÓN SWAP
-                      Positioned(
-                        child: SwapButton(),
-                      ),
+                      const Positioned(child: SwapButton()),
                     ],
                   ),
 
                   const SizedBox(height: 30),
 
-                  // ℹ️ BANNER DE INFORMACIÓN
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
                     decoration: BoxDecoration(
@@ -224,11 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Flexible(
                           child: Text(
                             '1 $baseCode = ${unitRate.toStringAsFixed(2)} $targetCode',
-                            style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.tertiary
-                            ),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colorScheme.tertiary),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -238,7 +162,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 40),
 
-                  // 📷🛒 BOTONES DE ACCIÓN
                   ActionButton(
                       icon: Icons.camera_alt,
                       label: 'Ir a la Cámara',
