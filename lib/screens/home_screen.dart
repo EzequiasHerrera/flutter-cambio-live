@@ -146,8 +146,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Expanded(
                                   child: provider.useCustomCurrency
-                                      ? Text(provider.customName,
-                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: colorScheme.primary))
+                                      ? Row(
+                                    children: [
+                                      const Icon(Icons.stars_rounded, color: Colors.orange),
+                                      const SizedBox(width: 10),
+                                      Text(provider.customName,
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: colorScheme.primary)),
+                                    ],
+                                  )
                                       : DropdownButtonHideUnderline(
                                     child: DropdownButton<Currency>(
                                       isExpanded: true,
@@ -170,10 +176,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   ),
                                 ),
-                                IconButton(
-                                  icon: Icon(Icons.edit_note,
-                                      color: provider.useCustomCurrency ? colorScheme.primary : Colors.grey),
-                                  onPressed: () => _showCustomCurrencyDialog(provider),
+                                // BOTONES DE ACCIÓN (EDITAR / ELIMINAR)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(Icons.edit_rounded,
+                                          color: provider.useCustomCurrency ? colorScheme.primary : Colors.grey),
+                                      onPressed: () => _showCustomCurrencyDialog(provider),
+                                    ),
+                                    if (provider.useCustomCurrency)
+                                      IconButton(
+                                        icon: const Icon(Icons.close_rounded, color: Colors.redAccent),
+                                        onPressed: () => provider.disableCustomCurrency(),
+                                      ),
+                                  ],
                                 )
                               ],
                             ),

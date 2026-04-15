@@ -134,6 +134,18 @@ class AppProvider with ChangeNotifier {
     return amount * rate;
   }
 
+  // DESACTIVAR MONEDA PERSONALIZADA
+  void disableCustomCurrency() {
+    _useCustomCurrency = false;
+    // Volvemos a la primera moneda disponible que no sea la base
+    _targetCurrency = availableCurrencies.firstWhere(
+      (c) => c.code != _baseCurrency?.code,
+      orElse: () => availableCurrencies.first
+    );
+    fetchRates();
+    notifyListeners();
+  }
+
   // AGREGAR AL CARRITO
   void addToCart(double original, double converted) {
     if (_baseCurrency == null || _targetCurrency == null) return;
