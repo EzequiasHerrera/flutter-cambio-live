@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:howmuch/widgets/custom_app_bar.dart';
+import 'package:howmuch/widgets/howie.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 
@@ -233,6 +234,17 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                   ),
                 ),
               ],
+            ),
+          ),
+
+          // HOWIE
+          Positioned(
+            bottom: _stableValue != null ? 180 : 40, // Se sube si aparece la tarjeta de resultados
+            left: 0,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              height: 200, // Tamaño más pequeño para la cámara
+              child: const Howie(), // Tu widget de la mascota
             ),
           ),
 

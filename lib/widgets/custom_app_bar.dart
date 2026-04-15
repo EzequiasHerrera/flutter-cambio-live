@@ -17,8 +17,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     return AppBar(
       systemOverlayStyle: isDarkMode
-      ? SystemUiOverlayStyle.dark
-      : SystemUiOverlayStyle.light,
+      ? SystemUiOverlayStyle.light
+      : SystemUiOverlayStyle.dark,
 
       // 1. Forzamos transparencia absoluta
       backgroundColor: Colors.transparent,

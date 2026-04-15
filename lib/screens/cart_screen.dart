@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:howmuch/widgets/custom_app_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/app_provider.dart';
@@ -10,17 +11,7 @@ class CartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Carrito de Compras'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () {
-              Provider.of<AppProvider>(context, listen: false).clearCart();
-            },
-          )
-        ],
-      ),
+      appBar: CustomAppBar(),
       body: Consumer<AppProvider>(
         builder: (context, provider, child) {
           if (provider.cart.isEmpty) {
