@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
-import 'action_button.dart'; // Importamos el ActionButton
-import 'dart:math' as math;
+import 'action_button.dart';
 
 class CustomCurrencyDialog extends StatefulWidget {
   const CustomCurrencyDialog({super.key});
 
-  // Metodo estático para mostrar el diálogo fácilmente
   static void show(BuildContext context) {
     showDialog(
       context: context,
@@ -22,7 +20,6 @@ class CustomCurrencyDialog extends StatefulWidget {
 
 class _CustomCurrencyDialogState extends State<CustomCurrencyDialog>
     with SingleTickerProviderStateMixin {
-
   late TextEditingController _nameController;
   late TextEditingController _rateController;
   late AnimationController _floatingController;
@@ -36,9 +33,10 @@ class _CustomCurrencyDialogState extends State<CustomCurrencyDialog>
       text: provider.customRate > 0 ? provider.customRate.toString() : '',
     );
 
+    // Animación infinita de rebote
     _floatingController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000), // Velocidad del rebote
+      duration: const Duration(seconds: 1),
     )..repeat(reverse: true);
   }
 
@@ -61,9 +59,8 @@ class _CustomCurrencyDialogState extends State<CustomCurrencyDialog>
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Ingresa un nombre y valor válido (ej: 1250.50)'),
+          content: const Text('Ingresa un nombre y valor válido'),
           backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -79,21 +76,22 @@ class _CustomCurrencyDialogState extends State<CustomCurrencyDialog>
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       title: Column(
         children: [
+          // ESTRELLA ANIMADA INFINITA
           AnimatedBuilder(
             animation: _floatingController,
             builder: (context, child) {
               return Transform.translate(
-                offset: Offset(0, 3 * Curves.easeInOut.transform(_floatingController.value)),
+                offset: Offset(0, 8 * Curves.easeInOut.transform(_floatingController.value)),
                 child: child,
               );
             },
             child: Icon(
               Icons.grade_rounded,
               color: colorScheme.primary,
-              size: 40,
+              size: 50,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 15),
           Text(
             'Moneda Personalizada',
             textAlign: TextAlign.center,
@@ -109,33 +107,23 @@ class _CustomCurrencyDialogState extends State<CustomCurrencyDialog>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 10),
             TextField(
               controller: _nameController,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 labelText: 'Nombre de la moneda',
-                hintText: 'ej: Dólar Blue',
                 prefixIcon: const Icon(Icons.label_outline),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
             const SizedBox(height: 20),
             TextField(
               controller: _rateController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 labelText: 'Tasa de cambio',
-                hintText: 'ej: 1150.00',
                 prefixIcon: const Icon(Icons.attach_money_rounded),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                helperText: 'Valor respecto a 1 USD',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ],
@@ -149,15 +137,10 @@ class _CustomCurrencyDialogState extends State<CustomCurrencyDialog>
               icon: Icons.save,
               label: 'Guardar y Activar',
               onPressed: _onSave,
-              isPrimary: true,
             ),
-            const SizedBox(height: 10),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Cancelar',
-                style: TextStyle(color: colorScheme.secondary),
-              ),
+              child: Text('Cancelar', style: TextStyle(color: colorScheme.secondary)),
             ),
           ],
         ),

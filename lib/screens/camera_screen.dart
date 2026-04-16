@@ -3,10 +3,12 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:howmuch/widgets/custom_app_bar.dart';
-import 'package:howmuch/widgets/howie.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../widgets/action_button.dart';
+import '../widgets/custom_app_bar.dart';
+import '../widgets/howie.dart';
+import '../widgets/currency_icon.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -25,7 +27,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   String _stableText = "";
   double? _stableValue;
   double? _convertedValue;
-  
+
   // Buffer para votación (almacena las últimas detecciones)
   final List<String> _detectionHistory = [];
   final int _historyLimit = 5; // Guardamos los últimos 5 frames
@@ -77,7 +79,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
       if (!mounted) return;
       final screenSize = MediaQuery.of(context).size;
-      
+
       final double imageWidth = image.height.toDouble();
       final double imageHeight = image.width.toDouble();
       final double scaleX = imageWidth / screenSize.width;
@@ -159,7 +161,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       final camera = _controller!.description;
       final rotation = InputImageRotationValue.fromRawValue(camera.sensorOrientation)
           ?? InputImageRotation.rotation90deg;
-      
+
       final plane = image.planes[0];
       final bytes = plane.bytes;
       final width = image.width;
@@ -200,6 +202,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     if (!_isCameraInitialized || _controller == null) {
       return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
     }
+    final colorScheme = Theme.of(context).colorScheme;
+    final provider = Provider.of<AppProvider>(context);
 
     return Scaffold(
       appBar: const CustomAppBar(showCart: true),
@@ -207,8 +211,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       body: Stack(
         children: [
           Positioned.fill(child: CameraPreview(_controller!)),
-          
-          // Rectángulo guía (Original Azul)
+
+          // Rectángulo guía
           Center(
             child: Container(
               width: rectWidth,
@@ -239,52 +243,111 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
 
           // HOWIE
           Positioned(
-            bottom: _stableValue != null ? 180 : 40, // Se sube si aparece la tarjeta de resultados
+            bottom: _stableValue != null ? 190 : 40,
             left: 0,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
-              height: 200, // Tamaño más pequeño para la cámara
-              child: const Howie(), // Tu widget de la mascota
+              height: 200,
+              child: const Howie(),
             ),
           ),
 
-          // Tarjeta de Conversión (Original Estándar)
+          // Tarjeta de Conversión con Texto Oscuro
           if (_stableValue != null)
             Positioned(
               bottom: 40,
               left: 20,
               right: 20,
               child: Card(
-                color: Colors.black.withValues(alpha: 0.85),
+                color: colorScheme.tertiaryContainer,
+                elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('DETECTADO: $_stableText', style: const TextStyle(color: Colors.white70)),
-                      const SizedBox(height: 5),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Parte Izquierda: Banderas y códigos (BRL -> ARS)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CurrencyIcon(
+                                    currencyCode: provider.baseCurrency?.code ?? '',
+                                    width: 24,
+                                    height: 16,
+                                  ),
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 4.0),
+                                    child: Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.black45),
+                                  ),
+                                  CurrencyIcon(
+                                    currencyCode: provider.targetCurrency?.code ?? '',
+                                    width: 24,
+                                    height: 16,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${provider.baseCurrency?.code} → ${provider.targetCurrency?.code}',
+                                style: const TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          // Parte Derecha: Precio Original
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              const Text(
+                                'Precio Original',
+                                style: TextStyle(color: Colors.black54, fontSize: 11),
+                              ),
+                              Text(
+                                '${provider.baseCurrency?.code} $_stableText',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const Divider(color: Colors.black12, height: 25),
+                      // Resultado Conversión (Verde oscuro)
                       Text(
-                        '${Provider.of<AppProvider>(context).targetCurrency?.code} ${_convertedValue?.toStringAsFixed(2)}',
-                        style: const TextStyle(color: Colors.greenAccent, fontSize: 38, fontWeight: FontWeight.bold),
+                        '${provider.targetCurrency?.code} ${_convertedValue?.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          color: Color(0xFF8C4404), // Green 900
+                          fontSize: 38,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 15),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.add_shopping_cart),
-                        label: const Text('GUARDAR PRECIO'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blueAccent,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size(double.infinity, 48),
-                        ),
+                      ActionButton(
+                        icon: Icons.add_shopping_cart,
+                        label: "Guardar Precio",
                         onPressed: () {
                           Provider.of<AppProvider>(context, listen: false)
                               .addToCart(_stableValue!, _convertedValue!);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Guardado en el carrito'), behavior: SnackBarBehavior.floating),
+                            const SnackBar(
+                              content: Text('Guardado en el carrito'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
                           );
                         },
-                      )
+                      ),
                     ],
                   ),
                 ),

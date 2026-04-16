@@ -38,122 +38,234 @@ class HomeScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 200, child: Howie()),
-                  const Text(
-                    'Vamos de compras?',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 20),
-
-                  Stack(
-                    alignment: Alignment.center,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Column(
-                        children: [
-                          CurrencyCard(
-                            label: 'Desde (Cámara)',
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<Currency>(
-                                isExpanded: true,
-                                value: provider.baseCurrency,
-                                borderRadius: BorderRadius.circular(AppTheme.radius),
-                                items: provider.availableCurrencies.map((Currency c) {
-                                  return DropdownMenuItem<Currency>(
-                                    value: c,
-                                    child: Row(
-                                      children: [
-                                        CurrencyIcon(currencyCode: c.code),
-                                        const SizedBox(width: 10),
-                                        Text('${c.code} - ${c.name}',
-                                            style: const TextStyle(fontWeight: FontWeight.bold)),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (val) => provider.setBaseCurrency(val!),
+                      Transform.translate(
+                        offset: const Offset(-25, 0),
+                        child: const SizedBox(
+                          width: 160,
+                          height: 200,
+                          child: Howie(),
+                        ),
+                      ),
+
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '¿Vamos de compras? 🛍️',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 15),
-                          CurrencyCard(
-                            label: 'Hacia (Ver)',
-                            child: Row(
+                            const SizedBox(height: 8),
+                            Text(
+                              'Convertí precios en segundos y descubrí cuánto cuestan realmente.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: colorScheme.outlineVariant.withOpacity(0.5),
+                      ),
+                      boxShadow: [AppTheme.getHardShadow(colorScheme)]
+                    ),
+                    child: Column(
+                      children: [
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Column(
                               children: [
-                                Expanded(
-                                  child: provider.useCustomCurrency
-                                      ? Row(
-                                    children: [
-                                      const Icon(Icons.stars_rounded, color: Colors.orange),
-                                      const SizedBox(width: 10),
-                                      Text(provider.customName,
-                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: colorScheme.primary)),
-                                    ],
-                                  )
-                                      : DropdownButtonHideUnderline(
+                                CurrencyCard(
+                                  label: 'Desde (Cámara)',
+                                  child: DropdownButtonHideUnderline(
                                     child: DropdownButton<Currency>(
                                       isExpanded: true,
-                                      value: provider.targetCurrency,
-                                      borderRadius: BorderRadius.circular(AppTheme.radius),
-                                      items: provider.availableCurrencies.map((Currency c) {
+                                      value: provider.baseCurrency,
+                                      borderRadius: BorderRadius.circular(
+                                        AppTheme.radius,
+                                      ),
+                                      items: provider.availableCurrencies.map((
+                                        Currency c,
+                                      ) {
                                         return DropdownMenuItem<Currency>(
                                           value: c,
                                           child: Row(
                                             children: [
-                                              CurrencyIcon(currencyCode: c.code),
+                                              CurrencyIcon(
+                                                currencyCode: c.code,
+                                              ),
                                               const SizedBox(width: 10),
-                                              Text('${c.code} - ${c.name}',
-                                                  style: const TextStyle(fontWeight: FontWeight.bold)),
+                                              Text(
+                                                '${c.code} - ${c.name}',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         );
                                       }).toList(),
-                                      onChanged: (val) => provider.setTargetCurrency(val!),
+                                      onChanged: (val) =>
+                                          provider.setBaseCurrency(val!),
                                     ),
                                   ),
                                 ),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: Icon(Icons.edit_rounded,
-                                          color: provider.useCustomCurrency ? colorScheme.primary : Colors.grey),
-                                      onPressed: () => CustomCurrencyDialog.show(context), // Llamada limpia
-                                    ),
-                                    if (provider.useCustomCurrency)
-                                      IconButton(
-                                        icon: const Icon(Icons.close_rounded, color: Colors.redAccent),
-                                        onPressed: () => provider.disableCustomCurrency(),
+                                const SizedBox(height: 15),
+                                CurrencyCard(
+                                  label: 'Hacia (Ver)',
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: provider.useCustomCurrency
+                                            ? Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.stars_rounded,
+                                                    color: Colors.orange,
+                                                  ),
+                                                  const SizedBox(width: 10),
+                                                  Text(
+                                                    provider.customName,
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 16,
+                                                      color:
+                                                          colorScheme.primary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              )
+                                            : DropdownButtonHideUnderline(
+                                                child: DropdownButton<Currency>(
+                                                  isExpanded: true,
+                                                  value:
+                                                      provider.targetCurrency,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        AppTheme.radius,
+                                                      ),
+                                                  items: provider
+                                                      .availableCurrencies
+                                                      .map((Currency c) {
+                                                        return DropdownMenuItem<
+                                                          Currency
+                                                        >(
+                                                          value: c,
+                                                          child: Row(
+                                                            children: [
+                                                              CurrencyIcon(
+                                                                currencyCode:
+                                                                    c.code,
+                                                              ),
+                                                              const SizedBox(
+                                                                width: 10,
+                                                              ),
+                                                              Text(
+                                                                '${c.code} - ${c.name}',
+                                                                style: const TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      })
+                                                      .toList(),
+                                                  onChanged: (val) => provider
+                                                      .setTargetCurrency(val!),
+                                                ),
+                                              ),
                                       ),
-                                  ],
-                                )
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.edit_rounded,
+                                              color: provider.useCustomCurrency
+                                                  ? colorScheme.primary
+                                                  : Colors.grey,
+                                            ),
+                                            onPressed: () =>
+                                                CustomCurrencyDialog.show(
+                                                  context,
+                                                ),
+                                          ),
+                                          if (provider.useCustomCurrency)
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.close_rounded,
+                                                color: Colors.redAccent,
+                                              ),
+                                              onPressed: () => provider
+                                                  .disableCustomCurrency(),
+                                            ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
+                            const Positioned(child: SwapButton()),
+                          ],
+                        ),
+                        const SizedBox(height: 30),
+
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 15,
+                            horizontal: 20,
                           ),
-                        ],
-                      ),
-                      const Positioned(child: SwapButton()),
-                    ],
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: colorScheme.tertiaryContainer,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: colorScheme.tertiary.withAlpha(50), width: 1),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.info_outline, color: colorScheme.tertiary, size: 20),
-                        const SizedBox(width: 10),
-                        Flexible(
-                          child: Text(
-                            '1 $baseCode = ${unitRate.toStringAsFixed(2)} $targetCode',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colorScheme.tertiary),
-                            overflow: TextOverflow.ellipsis,
+                          decoration: BoxDecoration(
+                            color: colorScheme.tertiaryContainer,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: colorScheme.tertiary.withAlpha(50),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: colorScheme.tertiary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Flexible(
+                                child: Text(
+                                  '1 $baseCode = ${unitRate.toStringAsFixed(2)} $targetCode',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.tertiary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -161,20 +273,19 @@ class HomeScreen extends StatelessWidget {
                   ),
 
                   const SizedBox(height: 40),
-
                   ActionButton(
-                      icon: Icons.camera_alt,
-                      label: 'Ir a la Cámara',
-                      onPressed: () => Navigator.pushNamed(context, '/camera'),
-                      isPrimary: true
+                    icon: Icons.camera_alt,
+                    label: 'Ir a la Cámara',
+                    onPressed: () => Navigator.pushNamed(context, '/camera'),
+                    isPrimary: true,
                   ),
                   const SizedBox(height: 15),
                   ActionButton(
-                      icon: Icons.shopping_cart,
-                      label: 'Ver Carrito',
-                      onPressed: () => Navigator.pushNamed(context, '/cart'),
-                      isPrimary: false
-                  )
+                    icon: Icons.shopping_cart,
+                    label: 'Ver Carrito',
+                    onPressed: () => Navigator.pushNamed(context, '/cart'),
+                    isPrimary: false,
+                  ),
                 ],
               ),
             ),

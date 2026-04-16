@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:howmuch/theme/app_theme.dart';
 
 class ActionButton extends StatefulWidget {
@@ -38,9 +39,13 @@ class _ActionButtonState extends State<ActionButton> {
     );
 
     return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapDown: (_) {
+        setState(() => _isPressed = true);
+        HapticFeedback.vibrate();
+      },
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onPressed,
 
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 80),
@@ -55,7 +60,7 @@ class _ActionButtonState extends State<ActionButton> {
           height: 55,
           child: ElevatedButton.icon(
             onPressed: widget.onPressed,
-            icon: Icon(widget.icon, size: 30),
+            icon: Icon(widget.icon, size: 35),
             label: Text(widget.label),
             style: ElevatedButton.styleFrom(
               backgroundColor: widget.isPrimary
