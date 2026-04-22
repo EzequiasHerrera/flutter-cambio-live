@@ -31,19 +31,22 @@ class PriceInterpreter {
     required Size screenSize,
     required Size imageSize,
   }) {
-    final double scaleX = screenSize.width / imageSize.width;
-    final double scaleY = screenSize.height / imageSize.height;
+    final double scaleX = imageSize.width / screenSize.width;
+    final double scaleY = imageSize.height / screenSize.height;
+
+    final Rect roiInImageSpace = Rect.fromLTWH(
+      roi.left * scaleX,
+      roi.top * scaleY,
+      roi.width * scaleX,
+      roi.height * scaleY,
+    );
 
     for (TextBlock block in text.blocks) {
       for (TextLine line in block.lines) {
-        final rect = Rect.fromLTRB(
-          line.boundingBox.left * scaleX,
-          line.boundingBox.top * scaleY,
-          line.boundingBox.right * scaleX,
-          line.boundingBox.bottom * scaleY,
-        );
 
-        if (roi.overlaps(rect)) {
+
+        if (roiInImageSpace.contains(line.boundingBox.center)) {
+          print(line.elements[0].boundingBox.height);
           final match = RegExp(r'\d+([.,]\d{1,2})?').firstMatch(line.text);
           if (match != null) return match.group(0);
         }
