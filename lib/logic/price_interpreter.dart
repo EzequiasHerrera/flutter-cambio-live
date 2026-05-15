@@ -31,7 +31,9 @@ class PriceInterpreter {
       }
       // 2. INERCIA (HISTÉRESIS): Si ya hay un precio fijo, somos tercos.
       // Exigimos 4 lecturas idénticas para permitir que otro número lo reemplace.
-      else if (_stableText.isNotEmpty && winner != _stableText && maxCount >= 4) {
+      else if (_stableText.isNotEmpty &&
+          winner != _stableText &&
+          maxCount >= 4) {
         _stableText = winner!;
       }
     }
@@ -40,33 +42,69 @@ class PriceInterpreter {
     return _stableText.isEmpty ? null : _stableText;
   }
 
+  // ===========================================================================
+  // METODO PRINCIPAL COORDINADOR
+  // ===========================================================================
   String? extractPriceFromRoi({
     required RecognizedText text,
     required Rect roi,
     required Size screenSize,
     required Size imageSize,
   }) {
+    print("\n========== NUEVO FRAME ==========");
+
+    // 0. Configuración de geometría (Escalas y Offsets)
     double imgWidth = imageSize.width;
     double imgHeight = imageSize.height;
 
-    if (screenSize.height > screenSize.width && imageSize.width > imageSize.height) {
+    if (screenSize.height > screenSize.width &&
+        imageSize.width > imageSize.height) {
       imgWidth = imageSize.height;
       imgHeight = imageSize.width;
     }
 
-    final double scale = max(screenSize.width / imgWidth, screenSize.height / imgHeight);
+    final double scale = max(
+      screenSize.width / imgWidth,
+      screenSize.height / imgHeight,
+    );
     final double offsetX = ((imgWidth * scale) - screenSize.width) / 2;
     final double offsetY = ((imgHeight * scale) - screenSize.height) / 2;
 
-    final Offset roiCenter = roi.center;
-    String? bestPrice;
-    double minDistance = double.infinity;
+    // PASO 1: Filtrado Espacial
+    List<TextLine> validLines = _paso1FiltrarEnPantalla(
+      text,
+      roi,
+      scale,
+      offsetX,
+      offsetY,
+    );
 
+    // PASO 2: Agrupación de Vecinos
+    List<List<TextLine>> groupedCandidates = _paso2AgruparBloques(validLines);
+
+    // PASO 3: Análisis y Extracción del Ganador
+    return _paso3AnalizarYExtraer(
+      groupedCandidates,
+      roi.center,
+      scale,
+      offsetX,
+      offsetY,
+    );
+  }
+
+  // ===========================================================================
+  // MÓDULOS DE PROCESAMIENTO
+  // ===========================================================================
+
+  List<TextLine> _paso1FiltrarEnPantalla(
+    RecognizedText text,
+    Rect roi,
+    double scale,
+    double offsetX,
+    double offsetY,
+  ) {
     List<TextLine> validLines = [];
 
-    print("\n========== NUEVO FRAME ==========");
-
-    // 1. Filtrado espacial optimizado
     for (TextBlock block in text.blocks) {
       for (TextLine line in block.lines) {
         final Rect rectInScreen = Rect.fromLTRB(
@@ -78,12 +116,18 @@ class PriceInterpreter {
 
         if (roi.overlaps(rectInScreen)) {
           validLines.add(line);
-          print("👁️ ML KIT LEYÓ: '${line.text}' | Centro Y: ${line.boundingBox.center.dy.toInt()} | Alto: ${line.boundingBox.height.toInt()}");
+          print(
+            "PASO 1: Encontré esto en pantalla (dentro del área): '${line.text}'",
+          );
         }
       }
     }
+    return validLines;
+  }
 
-    // 2. Agrupación y extracción
+  List<List<TextLine>> _paso2AgruparBloques(List<TextLine> validLines) {
+    List<List<TextLine>> groupedCandidates = [];
+
     for (int i = 0; i < validLines.length; i++) {
       TextLine mainLine = validLines[i];
       List<TextLine> row = [mainLine];
@@ -92,34 +136,62 @@ class PriceInterpreter {
         if (i == j) continue;
         TextLine otherLine = validLines[j];
 
-        double diffY = (mainLine.boundingBox.center.dy - otherLine.boundingBox.center.dy).abs();
+        double diffY =
+            (mainLine.boundingBox.center.dy - otherLine.boundingBox.center.dy)
+                .abs();
         bool sameRow = diffY < mainLine.boundingBox.height;
-        bool isToTheRight = otherLine.boundingBox.center.dx > mainLine.boundingBox.center.dx;
-        bool isClose = (otherLine.boundingBox.left - mainLine.boundingBox.right).abs() < (mainLine.boundingBox.width * 2.5);
+        bool isToTheRight =
+            otherLine.boundingBox.center.dx > mainLine.boundingBox.center.dx;
+        bool isClose =
+            (otherLine.boundingBox.left - mainLine.boundingBox.right).abs() <
+            (mainLine.boundingBox.width * 2.5);
 
         if (sameRow && isToTheRight && isClose) {
           row.add(otherLine);
-        } else if (isToTheRight && isClose) {
-          print("⚠️ ALERTA DE SEPARACIÓN: '${mainLine.text}' y '${otherLine.text}' cerca pero falló sameRow. (DiffY: ${diffY.toInt()})");
         }
       }
 
       row.sort((a, b) => a.boundingBox.left.compareTo(b.boundingBox.left));
+      groupedCandidates.add(row);
+
+      String combinedText = row.map((e) => e.text).join(' ');
+      print("PASO 2: Me quedo solo con estos bloques unidos: '$combinedText'");
+    }
+
+    return groupedCandidates;
+  }
+
+  String? _paso3AnalizarYExtraer(
+    List<List<TextLine>> groupedCandidates,
+    Offset roiCenter,
+    double scale,
+    double offsetX,
+    double offsetY,
+  ) {
+    String? bestPrice;
+    double minDistance = double.infinity;
+
+    for (List<TextLine> row in groupedCandidates) {
       String combinedText = row.map((e) => e.text).join(' ');
 
-      print("🔗 TEXTO AGRUPADO A EVALUAR: '$combinedText'");
+      print(
+        "PASO 3: Analizo formato de precio completo en este bloque: '$combinedText'",
+      );
 
       final price = _cleanAndExtractPrice(combinedText);
 
       if (price != null) {
-        print("✅ PRECIO EXTRAÍDO CON ÉXITO: '$price'");
+        print("   -> ✅ ES UN PRECIO VÁLIDO: '$price'");
 
         double minLeft = row.map((e) => e.boundingBox.left).reduce(min);
         double minTop = row.map((e) => e.boundingBox.top).reduce(min);
         double maxRight = row.map((e) => e.boundingBox.right).reduce(max);
         double maxBottom = row.map((e) => e.boundingBox.bottom).reduce(max);
 
-        final Offset combinedCenterInImage = Offset((minLeft + maxRight) / 2, (minTop + maxBottom) / 2);
+        final Offset combinedCenterInImage = Offset(
+          (minLeft + maxRight) / 2,
+          (minTop + maxBottom) / 2,
+        );
 
         final Offset centerInScreen = Offset(
           (combinedCenterInImage.dx * scale) - offsetX,
@@ -127,8 +199,8 @@ class PriceInterpreter {
         );
 
         final double distance = sqrt(
-            pow(centerInScreen.dx - roiCenter.dx, 2) +
-                pow(centerInScreen.dy - roiCenter.dy, 2)
+          pow(centerInScreen.dx - roiCenter.dx, 2) +
+              pow(centerInScreen.dy - roiCenter.dy, 2),
         );
 
         if (distance < minDistance) {
@@ -136,47 +208,65 @@ class PriceInterpreter {
           bestPrice = price;
         }
       } else {
-        print("❌ RECHAZADO POR REGEX: '$combinedText' no es un precio válido");
+        print("   -> ❌ NO TIENE FORMATO. Descartado.");
       }
+    }
+
+    if (bestPrice != null) {
+      print("🏆 GANADOR DEL FRAME (Más central): '$bestPrice'");
     }
 
     return bestPrice;
   }
 
   String? _cleanAndExtractPrice(String rawText) {
-    String cleaned = rawText;
-
-    // Diccionario Tipográfico (OCR Fix) para escritura a mano
-    cleaned = cleaned.replaceAll(RegExp(r'[oO]'), '0');
-    cleaned = cleaned.replaceAll(RegExp(r'[iIlL]'), '1');
-    cleaned = cleaned.replaceAll(RegExp(r'[zZ]'), '2');
-    cleaned = cleaned.replaceAll(RegExp(r'[sS]'), '5');
-    // Sumamos la "q" que suele confundirse con el 9 escrito a mano
-    cleaned = cleaned.replaceAll(RegExp(r'[gGqQ]'), '9');
-    cleaned = cleaned.replaceAll(RegExp(r'[bB]'), '8');
-
-    cleaned = cleaned.replaceAllMapped(
-      RegExp(r"(\d+)[-'_](\d{1,2})\b"),
-          (Match m) => '${m[1]}.${m[2]}',
+    // 1. EL ENSAMBLADOR: Unimos enteros y centavos huérfanos separados por espacio
+    // Ej: "39 .99" o "39 99" o "39 , 99" se convierte en "39.99"
+    String preProcessed = rawText.replaceAllMapped(
+      RegExp(r'(\d+)\s*[.,]?\s+(\d{1,2})\b'),
+      (Match m) => '${m[1]}.${m[2]}',
     );
 
-    cleaned = cleaned.replaceAll(RegExp(r'[^\d.,\s]'), '');
+    // 2. SEPARAMOS POR PALABRAS: Evaluamos cada bloque por separado
+    // Así "500 BRL" se evalúa como "500" (válido) y "BRL" (descartado)
+    List<String> words = preProcessed.split(RegExp(r'\s+'));
 
-    // Esta expresión es la que cumple su orden: "Que busque SI O SI 1 o 2 digitos separados y los una con punto"
-    cleaned = cleaned.replaceAllMapped(
-      RegExp(r'(\d+)\s+(\d{1,2})\b'),
-          (Match m) => '${m[1]}.${m[2]}',
-    );
+    for (String word in words) {
+      String cleanedWord = word;
 
-    cleaned = cleaned.replaceAll(' ', '');
-    cleaned = cleaned.replaceAll(RegExp(r',(?=\d{3})'), '');
+      // Aplicamos el diccionario solo a esta palabra
+      cleanedWord = cleanedWord.replaceAll(RegExp(r'[oO]'), '0');
+      cleanedWord = cleanedWord.replaceAll(RegExp(r'[iIlL]'), '1');
+      cleanedWord = cleanedWord.replaceAll(RegExp(r'[zZ]'), '2');
+      cleanedWord = cleanedWord.replaceAll(RegExp(r'[sS]'), '5');
+      cleanedWord = cleanedWord.replaceAll(RegExp(r'[gGqQ]'), '9');
+      cleanedWord = cleanedWord.replaceAll(RegExp(r'[bB]'), '8');
 
-    final match = RegExp(r'\d+([.,]\d{1,2})?').firstMatch(cleaned);
+      // 3. LA REGLA ESTRICTA (Escudo anti-ALMOFADA)
+      // Quitamos temporalmente puntos, comas y símbolos de moneda comunes
+      String testWord = cleanedWord.replaceAll(RegExp(r'[\$R.,]'), '');
 
-    if (match != null) {
-      return match.group(0)!.replaceAll(',', '.');
+      // ¿Le quedaron letras alfabéticas? Si es así, es una palabra mezclada (Ej: A1M0FADA)
+      bool hasLetters = RegExp(r'[a-zA-Z]').hasMatch(testWord);
+
+      if (hasLetters) {
+        continue; // RECHAZADO: Tiene letras, pasamos a la siguiente palabra
+      }
+
+      // 4. VALIDACIÓN DE ESTRUCTURA MATEMÁTICA
+      // Limpiamos los caracteres raros que hayan quedado
+      String finalNumber = cleanedWord.replaceAll(RegExp(r'[^\d.,]'), '');
+
+      // La Regex ahora tiene '^' y '$': Exige que TODO el string sea el número.
+      // Debe EMPEZAR con un dígito de forma obligatoria.
+      // Esto mata al '.99' porque empieza con un punto, devolviendo null.
+      final match = RegExp(r'^\d+([.,]\d{1,2})?$').firstMatch(finalNumber);
+
+      if (match != null) {
+        return match.group(0)!.replaceAll(',', '.'); // Retornamos el ganador
+      }
     }
 
-    return null;
+    return null; // Si ninguna palabra cumplió los requisitos estrictos
   }
 }

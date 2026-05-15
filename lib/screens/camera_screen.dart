@@ -1,4 +1,3 @@
-// REEMPLAZA el archivo entero:
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -26,6 +25,9 @@ class _CameraScreenState extends State<CameraScreen>
   // ✅ Guard para evitar procesar frames en paralelo
   bool _isProcessing = false;
 
+  // ⏱️ EL CRONÓMETRO: Variable para controlar el "freno de mano"
+  DateTime _lastProcessTime = DateTime.now();
+
   double? _val, _conv;
   String _txt = "";
 
@@ -50,6 +52,16 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   void _onFrame(inputImage) async {
+    // 1. EL FRENO DE MANO: Verificamos cuánto tiempo pasó
+    final now = DateTime.now();
+    if (now.difference(_lastProcessTime).inMilliseconds < 1500) {
+      // Si pasaron menos de 1500 milisegundos (1.5 segundos), ignoramos esta foto
+      return;
+    }
+
+    // 2. ACTUALIZAMOS EL CRONÓMETRO
+    _lastProcessTime = now;
+
     // ✅ Guard restaurado
     if (_isProcessing || !mounted) return;
     _isProcessing = true;
@@ -179,8 +191,10 @@ class _CameraScreenState extends State<CameraScreen>
                 convertedValue: _conv!,
                 currencyCode: provider.targetCurrency?.code ?? '',
                 onSave: () {
-                  Provider.of<AppProvider>(context, listen: false)
-                      .addToCart(_val!, _conv!);
+                  Provider.of<AppProvider>(
+                    context,
+                    listen: false,
+                  ).addToCart(_val!, _conv!);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Guardado en el carrito'),
