@@ -1,5 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:provider/provider.dart';
 import '../services/camera_service.dart';
 import '../services/ocr_service.dart';
@@ -22,25 +23,39 @@ class _CameraScreenState extends State<CameraScreen>
   final OCRService _ocr = OCRService();
   final PriceInterpreter _brain = PriceInterpreter();
 
-  // ✅ Guard para evitar procesar frames en paralelo
-  bool _isProcessing = false;
-
-  // ⏱️ EL CRONÓMETRO: Variable para controlar el "freno de mano"
-  DateTime _lastProcessTime = DateTime.now();
-
+  bool _isProcessing = false; // Guard para evitar procesar frames en paralelo
+  DateTime _lastProcessTime =
+      DateTime.now(); // Cronómetro optimizado para dar fluidez (300ms en lugar de 1500ms)
   double? _val, _conv;
   String _txt = "";
 
-  final double rectWidth = 300;
+  final double rectWidth = 300; //Tamaño del ROI (Region of Interest)
   final double rectHeight = 180;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _initializeCamera();
+  }
+
+  void _initializeCamera() {
     _camera.initialize(_onFrame).then((_) {
-      if (mounted) setState(() {}); // ← le avisamos a Flutter que redibuje
+      if (mounted) setState(() {});
     });
+  }
+
+  // ✅ SOLUCIÓN AL CICLO DE VIDA DE LA CÁMARA
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_camera.controller == null || !_camera.isInitialized) return;
+
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      _camera.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      _initializeCamera();
+    }
   }
 
   @override
@@ -51,24 +66,48 @@ class _CameraScreenState extends State<CameraScreen>
     super.dispose();
   }
 
-  void _onFrame(inputImage) async {
-    // 1. EL FRENO DE MANO: Verificamos cuánto tiempo pasó
+  void _onFrame(InputImage inputImage) async {
+    if (!mounted) return;
+
+    // 1. EL GUARD DE PARALELISMO DEBE IR PRIMERO
+    if (_isProcessing) return;
+
+    // 2. EL FRENO DE MANO OPTIMIZADO (300ms para que se sienta fluido en tiempo real)
     final now = DateTime.now();
-    if (now.difference(_lastProcessTime).inMilliseconds < 1500) {
-      // Si pasaron menos de 1500 milisegundos (1.5 segundos), ignoramos esta foto
+    if (now.difference(_lastProcessTime).inMilliseconds < 300) {
       return;
     }
 
-    // 2. ACTUALIZAMOS EL CRONÓMETRO
+    _isProcessing = true;
     _lastProcessTime = now;
 
-    // ✅ Guard restaurado
-    if (_isProcessing || !mounted) return;
-    _isProcessing = true;
-
     try {
+      // Validamos que la metadata de la imagen exista para evitar crashes
+      if (inputImage.metadata?.size == null) return;
+
       final text = await _ocr.processImage(inputImage);
       if (!mounted) return;
+      //-------------------- MUESTRO EL TEXTO DETALLADO -------------------
+      print("=================================================");
+      print("TEXTO CRUDO GENERAL:");
+      print(text.text); // Esto imprime todo el string unificado
+      print("-------------------------------------------------");
+      print("DESGLOSE POR BLOQUES Y LÍNEAS:");
+
+      for (TextBlock block in text.blocks) {
+        print("📦 [BLOQUE NUEVO] -> Texto: ${block.text}");
+        print("   Posición en pantalla (BoundingBox): ${block.boundingBox}");
+
+        for (TextLine line in block.lines) {
+          print("   -- 📝 [LÍNEA] -> ${line.text}");
+          // Si querés ver las palabras sueltas de esa línea:
+          // for (TextElement element in line.elements) {
+          //   print("      -- 📍 [PALABRA]: ${element.text}");
+          // }
+        }
+      }
+      print("=================================================");
+      //-------------------------------------------------------------------
 
       final screenSize = MediaQuery.of(context).size;
       final roi = Rect.fromCenter(
@@ -89,6 +128,7 @@ class _CameraScreenState extends State<CameraScreen>
         if (stable != null && mounted) {
           final provider = Provider.of<AppProvider>(context, listen: false);
           final val = double.tryParse(stable.replaceAll(',', '.'));
+
           if (val != null && val > 0) {
             setState(() {
               _txt = stable;
@@ -101,7 +141,7 @@ class _CameraScreenState extends State<CameraScreen>
     } catch (e) {
       debugPrint("Error en _onFrame: $e");
     } finally {
-      _isProcessing = false;
+      _isProcessing = false; // ✅ Se libera de forma segura siempre
     }
   }
 
@@ -114,7 +154,6 @@ class _CameraScreenState extends State<CameraScreen>
       );
     }
 
-    final colorScheme = Theme.of(context).colorScheme;
     final provider = Provider.of<AppProvider>(context);
 
     return Scaffold(
@@ -123,10 +162,19 @@ class _CameraScreenState extends State<CameraScreen>
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          // Cámara
-          Positioned.fill(child: CameraPreview(_camera.controller!)),
+          // Cámara ocupando to-do el espacio con su proporción correcta
+          Positioned.fill(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: _camera.controller!.value.previewSize?.height ?? 1080,
+                height: _camera.controller!.value.previewSize?.width ?? 1920,
+                child: CameraPreview(_camera.controller!),
+              ),
+            ),
+          ),
 
-          // Overlay oscuro con recorte
+          // Overlay oscuro con recorte de la zona de lectura (ROI)
           ColorFiltered(
             colorFilter: ColorFilter.mode(
               Colors.black.withValues(alpha: 0.6),
@@ -154,7 +202,7 @@ class _CameraScreenState extends State<CameraScreen>
             ),
           ),
 
-          // Rectángulo guía
+          // Rectángulo guía visual
           Center(
             child: Container(
               width: rectWidth,
@@ -169,7 +217,7 @@ class _CameraScreenState extends State<CameraScreen>
             ),
           ),
 
-          // Howie
+          // Animación de Howie reaccionando al precio
           Positioned(
             bottom: _val != null ? 190 : 40,
             left: 0,
@@ -180,7 +228,7 @@ class _CameraScreenState extends State<CameraScreen>
             ),
           ),
 
-          // Tarjeta de precio
+          // Tarjeta inferior con el precio convertido
           if (_val != null)
             Positioned(
               bottom: 40,
