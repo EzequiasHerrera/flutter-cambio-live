@@ -42,9 +42,7 @@ class PriceInterpreter {
     return _stableText.isEmpty ? null : _stableText;
   }
 
-  // ===========================================================================
-  // METODO PRINCIPAL COORDINADOR
-  // ===========================================================================
+  // 📷 TODO EXTRACTOR DE INFORMACION
   String? extractPriceFromRoi({
     required RecognizedText text,
     required Rect roi,
@@ -92,10 +90,7 @@ class PriceInterpreter {
     );
   }
 
-  // ===========================================================================
-  // MÓDULOS DE PROCESAMIENTO
-  // ===========================================================================
-
+  // 🧮 TODO PROCESAMIENTO
   List<TextLine> _paso1FiltrarEnPantalla(
     RecognizedText text,
     Rect roi,
@@ -220,21 +215,24 @@ class PriceInterpreter {
   }
 
   String? _cleanAndExtractPrice(String rawText) {
-    // 1. EL ENSAMBLADOR: Unimos enteros y centavos huérfanos separados por espacio
-    // Ej: "39 .99" o "39 99" o "39 , 99" se convierte en "39.99"
+    // 1. EL ENSAMBLADOR AGRESIVO: Sanea espacios de separadores decimales
     String preProcessed = rawText.replaceAllMapped(
       RegExp(r'(\d+)\s*[.,]?\s+(\d{1,2})\b'),
       (Match m) => '${m[1]}.${m[2]}',
     );
 
-    // 2. SEPARAMOS POR PALABRAS: Evaluamos cada bloque por separado
-    // Así "500 BRL" se evalúa como "500" (válido) y "BRL" (descartado)
+    preProcessed = preProcessed.replaceAllMapped(
+      RegExp(r'(\d+)\s+([.,])\s*(\d{1,2})'),
+      (Match m) => '${m[1]}.${m[3]}',
+    );
+
+    // 2. SEPARAMOS POR PALABRAS
     List<String> words = preProcessed.split(RegExp(r'\s+'));
 
     for (String word in words) {
       String cleanedWord = word;
 
-      // Aplicamos el diccionario solo a esta palabra
+      // Diccionario de sustitución visual
       cleanedWord = cleanedWord.replaceAll(RegExp(r'[oO]'), '0');
       cleanedWord = cleanedWord.replaceAll(RegExp(r'[iIlL]'), '1');
       cleanedWord = cleanedWord.replaceAll(RegExp(r'[zZ]'), '2');
@@ -242,31 +240,28 @@ class PriceInterpreter {
       cleanedWord = cleanedWord.replaceAll(RegExp(r'[gGqQ]'), '9');
       cleanedWord = cleanedWord.replaceAll(RegExp(r'[bB]'), '8');
 
-      // 3. LA REGLA ESTRICTA (Escudo anti-ALMOFADA)
-      // Quitamos temporalmente puntos, comas y símbolos de moneda comunes
+      // 3. LA REGLA ESTRICTA (Escudo anti-letras)
       String testWord = cleanedWord.replaceAll(RegExp(r'[\$R.,]'), '');
-
-      // ¿Le quedaron letras alfabéticas? Si es así, es una palabra mezclada (Ej: A1M0FADA)
       bool hasLetters = RegExp(r'[a-zA-Z]').hasMatch(testWord);
 
       if (hasLetters) {
-        continue; // RECHAZADO: Tiene letras, pasamos a la siguiente palabra
+        continue; // RECHAZADO: Contiene caracteres alfabéticos mezclados
       }
 
-      // 4. VALIDACIÓN DE ESTRUCTURA MATEMÁTICA
-      // Limpiamos los caracteres raros que hayan quedado
+      // 4. VALIDACIÓN DE ESTRUCTURA MATEMÁTICA IMPLACABLE
       String finalNumber = cleanedWord.replaceAll(RegExp(r'[^\d.,]'), '');
+      finalNumber = finalNumber.replaceAll(',', '.');
 
-      // La Regex ahora tiene '^' y '$': Exige que TODO el string sea el número.
-      // Debe EMPEZAR con un dígito de forma obligatoria.
-      // Esto mata al '.99' porque empieza con un punto, devolviendo null.
-      final match = RegExp(r'^\d+([.,]\d{1,2})?$').firstMatch(finalNumber);
+      // 🔥 AJUSTE QUIRÚRGICO: Modificamos la Regex para exigir OBLIGATORIAMENTE centavos (\.\d{1,2})
+      // Eliminamos el signo '?' del grupo decimal. Si no hay punto y centavos, se descarta el frame.
+      // Además, exigimos que el número entero no empiece con ceros basura innecesarios.
+      final match = RegExp(r'^[1-9]\d*\.\d{1,2}$').firstMatch(finalNumber);
 
       if (match != null) {
-        return match.group(0)!.replaceAll(',', '.'); // Retornamos el ganador
+        return match.group(0)!; // Retorna estrictamente la estructura "X.XX"
       }
     }
 
-    return null; // Si ninguna palabra cumplió los requisitos estrictos
+    return null; // Bloquea cualquier lectura huérfana o incompleta
   }
 }

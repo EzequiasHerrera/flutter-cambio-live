@@ -26,6 +26,7 @@ class CameraService {
 
     try {
       await controller!.initialize();
+
       try {
         await controller!.setFocusMode(FocusMode.auto);
       } catch (_) {}
@@ -39,6 +40,7 @@ class CameraService {
 
           final inputImage = _inputImageFromCameraImage(image);
           if (inputImage != null) {
+            //------💡LLAMAMOS A onFrame------💡
             onInputImage(inputImage);
           }
         } catch (e) {
@@ -103,7 +105,7 @@ class CameraService {
           size: Size(width.toDouble(), height.toDouble()),
           rotation: rotation,
           format: InputImageFormat.nv21,
-          bytesPerRow: width, // Memoria alineada estrictamente al ancho lógico
+          bytesPerRow: width,
         ),
       );
     } catch (e) {

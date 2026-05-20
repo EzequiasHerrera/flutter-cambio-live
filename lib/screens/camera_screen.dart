@@ -19,19 +19,19 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen>
     with WidgetsBindingObserver {
-  final CameraService _camera = CameraService();
-  final OCRService _ocr = OCRService();
-  final PriceInterpreter _brain = PriceInterpreter();
+  final CameraService _camera = CameraService(); //📷
+  final OCRService _ocr = OCRService(); //👓
+  final PriceInterpreter _priceInterpreter = PriceInterpreter(); //❓
 
-  bool _isProcessing = false; // Guard para evitar procesar frames en paralelo
-  DateTime _lastProcessTime =
-      DateTime.now(); // Cronómetro optimizado para dar fluidez (300ms en lugar de 1500ms)
+  bool _isProcessing = false;
+  DateTime _lastProcessTime = DateTime.now();
   double? _val, _conv;
   String _txt = "";
 
   final double rectWidth = 300; //Tamaño del ROI (Region of Interest)
   final double rectHeight = 180;
 
+  //----⛔ IGNORE ⛔----
   @override
   void initState() {
     super.initState();
@@ -45,7 +45,6 @@ class _CameraScreenState extends State<CameraScreen>
     });
   }
 
-  // ✅ SOLUCIÓN AL CICLO DE VIDA DE LA CÁMARA
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_camera.controller == null || !_camera.isInitialized) return;
@@ -66,85 +65,66 @@ class _CameraScreenState extends State<CameraScreen>
     super.dispose();
   }
 
+  //---- 💡 LÓGICA IMPORTANT ACÁ 💡 -----
   void _onFrame(InputImage inputImage) async {
-    if (!mounted) return;
+    if (!mounted || _isProcessing) return;
 
-    // 1. EL GUARD DE PARALELISMO DEBE IR PRIMERO
-    if (_isProcessing) return;
-
-    // 2. EL FRENO DE MANO OPTIMIZADO (300ms para que se sienta fluido en tiempo real)
     final now = DateTime.now();
-    if (now.difference(_lastProcessTime).inMilliseconds < 300) {
-      return;
-    }
+    if (now.difference(_lastProcessTime).inMilliseconds < 300) return;
 
     _isProcessing = true;
     _lastProcessTime = now;
 
     try {
-      // Validamos que la metadata de la imagen exista para evitar crashes
       if (inputImage.metadata?.size == null) return;
 
       final text = await _ocr.processImage(inputImage);
-      if (!mounted) return;
-      //-------------------- MUESTRO EL TEXTO DETALLADO -------------------
-      print("=================================================");
-      print("TEXTO CRUDO GENERAL:");
-      print(text.text); // Esto imprime todo el string unificado
-      print("-------------------------------------------------");
-      print("DESGLOSE POR BLOQUES Y LÍNEAS:");
+      if (!mounted) return; //⚠️
 
-      for (TextBlock block in text.blocks) {
-        print("📦 [BLOQUE NUEVO] -> Texto: ${block.text}");
-        print("   Posición en pantalla (BoundingBox): ${block.boundingBox}");
-
-        for (TextLine line in block.lines) {
-          print("   -- 📝 [LÍNEA] -> ${line.text}");
-          // Si querés ver las palabras sueltas de esa línea:
-          // for (TextElement element in line.elements) {
-          //   print("      -- 📍 [PALABRA]: ${element.text}");
-          // }
-        }
-      }
-      print("=================================================");
-      //-------------------------------------------------------------------
-
-      final screenSize = MediaQuery.of(context).size;
+      final screenSize = MediaQuery.of(
+        context,
+      ).size; //OBTIENE TAMAÑO DE PANTALLA
       final roi = Rect.fromCenter(
         center: screenSize.center(Offset.zero),
         width: rectWidth,
         height: rectHeight,
       );
 
-      final rawPrice = _brain.extractPriceFromRoi(
+      // 💵 OBTIENE EL PRECIO CRUDO
+      final rawPrice = _priceInterpreter.extractPriceFromRoi(
         text: text,
         roi: roi,
         screenSize: screenSize,
         imageSize: inputImage.metadata!.size,
       );
+      if (rawPrice == null) return; //⚠️
 
-      if (rawPrice != null) {
-        final stable = _brain.getStablePrice(rawPrice);
-        if (stable != null && mounted) {
-          final provider = Provider.of<AppProvider>(context, listen: false);
-          final val = double.tryParse(stable.replaceAll(',', '.'));
+      final stable = _priceInterpreter.getStablePrice(
+        rawPrice,
+      ); //🥰Este valor solo llega si en la lógica interna se confirmó que es estable
+      if (stable == null) return; //⚠️
 
-          if (val != null && val > 0) {
-            setState(() {
-              _txt = stable;
-              _val = val;
-              _conv = provider.convert(val);
-            });
-          }
-        }
+      final provider = Provider.of<AppProvider>(context, listen: false);
+      final val = double.tryParse(stable.replaceAll(',', '.'));
+
+      if (val != null && val > 0) {
+        //💱 CAMBIO DE MONEDA
+        setState(() {
+          _txt = stable;
+          _val = val;
+          _conv = provider.convert(val);
+        });
       }
     } catch (e) {
       debugPrint("Error en _onFrame: $e");
     } finally {
-      _isProcessing = false; // ✅ Se libera de forma segura siempre
+      _isProcessing = false;
     }
   }
 
+  //--------------------------------------
+
+  //----✨ VISUAL ✨-----
   @override
   Widget build(BuildContext context) {
     if (!_camera.isInitialized || _camera.controller == null) {
