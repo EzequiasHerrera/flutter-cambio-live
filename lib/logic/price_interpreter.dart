@@ -74,38 +74,15 @@ class PriceInterpreter {
 
     // 1️⃣ PASO 1: Filtrado Espacial
     List<TextLine> linesInRoi = PriceRoiFilter.filterPricesOnROI(text, roi, scale, offsetX, offsetY,);
-
     // 2️⃣ PASO 2: Agrupación de Vecinos
-    //List<List<TextLine>> groupedCandidates = _paso2AgruparBloques(linesInRoi);
     List<List<TextLine>> groupedCandidates = PriceGroupsLogic.agruparPrecioPorLider(linesInRoi);
-
     // 3️⃣ PASO 3: Análisis y Extracción del Ganador
-    return PriceCompleteAnalizer.AnalizarYExtraer(
+    return PriceCompleteAnalizer.analizarYExtraer(
       groupedCandidates,
       roi.center,
       scale,
       offsetX,
       offsetY,
     );
-  }
-
-  // 📦 Función auxiliar para empaquetar los clones virtuales con el mismo tipo nativo
-  List<TextLine> _crearLineasVirtuales(String entero, String centavo, TextLine original) {
-    return [
-      TextLine(
-        text: entero,
-        boundingBox: original.boundingBox,
-        elements: original.elements,
-        cornerPoints: original.cornerPoints,
-        recognizedLanguages: original.recognizedLanguages, confidence: null, angle: null,
-      ),
-      TextLine(
-        text: centavo,
-        boundingBox: original.boundingBox,
-        elements: original.elements,
-        cornerPoints: original.cornerPoints,
-        recognizedLanguages: original.recognizedLanguages, confidence: null, angle: null,
-      )
-    ];
   }
 }
