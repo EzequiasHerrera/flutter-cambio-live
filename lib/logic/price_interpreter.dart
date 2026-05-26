@@ -52,8 +52,6 @@ class PriceInterpreter {
     required Size screenSize,
     required Size imageSize,
   }) {
-    print("\n========== NUEVO FRAME ==========");
-
     // 0. Configuración de geometría (Escalas y Offsets)
     double imgWidth = imageSize.width;
     double imgHeight = imageSize.height;
@@ -72,10 +70,23 @@ class PriceInterpreter {
     final double offsetX = ((imgWidth * scale) - screenSize.width) / 2;
     final double offsetY = ((imgHeight * scale) - screenSize.height) / 2;
 
+    print("\n========== NUEVO FRAME ==========");
+
+    // 🔥 --- INICIO MODO DEBUG RAW INYECTADO --- 🔥
+    print("👁️ VISIÓN CRUDA DE ML KIT:");
+    for (var block in text.blocks) {
+      for (var line in block.lines) {
+        print("   -> Leyó: '${line.text}' | Caja: ${line.boundingBox}");
+      }
+    }
+    // 🔥 --- FIN MODO DEBUG RAW INYECTADO --- 🔥
+
     // 1️⃣ PASO 1: Filtrado Espacial
     List<TextLine> linesInRoi = PriceRoiFilter.filterPricesOnROI(text, roi, scale, offsetX, offsetY,);
+
     // 2️⃣ PASO 2: Agrupación de Vecinos
     List<List<TextLine>> groupedCandidates = PriceGroupsLogic.agruparPrecioPorLider(linesInRoi);
+
     // 3️⃣ PASO 3: Análisis y Extracción del Ganador
     return PriceCompleteAnalizer.analizarYExtraer(
       groupedCandidates,

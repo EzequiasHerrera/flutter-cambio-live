@@ -8,7 +8,7 @@ class PriceGroupsLogic {
   static final RegExp _rxSoloDigitos = RegExp(r'[^0-9]');
   static final RegExp _rxNativoPerfecto = RegExp(r'[.,]\d{2}$');
 
-  // =====================================================================
+  // ================================================|=====================
   // 🚀 METODO PRINCIPAL (Ahora es un esquema limpio y fácil de leer)
   // =====================================================================
   static List<List<TextLine>> agruparPrecioPorLider(List<TextLine> linesInRoi) {
@@ -92,8 +92,15 @@ class PriceGroupsLogic {
       final candDigitos = candidate.text.replaceAll(_rxSoloDigitos, '');
       if (candDigitos.length != 2) return false;
 
-      final bool aLaDerecha = candidate.boundingBox.left >= baseLine.boundingBox.right - 5;
-      final double margen = baseLine.boundingBox.height * 0.3;
+      // 🔥 SOLUCIÓN DIAGONAL: Calculamos los centros horizontales
+      final double baseCenterX = (baseLine.boundingBox.left + baseLine.boundingBox.right) / 2;
+      final double candCenterX = (candidate.boundingBox.left + candidate.boundingBox.right) / 2;
+
+      // Ahora comparamos los centros en lugar de los bordes
+      final bool aLaDerecha = candCenterX > baseCenterX;
+
+      // Ampliamos el margen de tolerancia vertical al 50% para textos inclinados
+      final double margen = baseLine.boundingBox.height * 0.5;
       final bool rangoVertical =
           candidate.boundingBox.top >= (baseLine.boundingBox.top - margen) &&
               candidate.boundingBox.bottom <= (baseLine.boundingBox.bottom + margen);
@@ -102,7 +109,13 @@ class PriceGroupsLogic {
     }).toList();
 
     if (vecinos.isNotEmpty) {
-      vecinos.sort((a, b) => a.boundingBox.left.compareTo(b.boundingBox.left));
+      // Ordenamos de izquierda a derecha basándonos en sus centros
+      vecinos.sort((a, b) {
+        final centerA = (a.boundingBox.left + a.boundingBox.right) / 2;
+        final centerB = (b.boundingBox.left + b.boundingBox.right) / 2;
+        return centerA.compareTo(centerB);
+      });
+
       print("   🔗 VECINOS: Se unió '${baseLine.text}' con el centavo '${vecinos.first.text}'.");
       lote.add([baseLine, vecinos.first]);
     } else {
