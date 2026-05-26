@@ -1,6 +1,9 @@
 import 'dart:ui';
 import 'dart:math';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:howmuch/logic/price_complete_analizer.dart';
+import 'package:howmuch/logic/price_groups_logic.dart';
+import 'package:howmuch/logic/price_roi_filter.dart';
 
 class PriceInterpreter {
   final List<String> _history = [];
@@ -43,9 +46,9 @@ class PriceInterpreter {
   }
 
   // 📷 TODO EXTRACTOR DE INFORMACION
-  String? extractPriceFromRoi({
-    required RecognizedText text,
-    required Rect roi,
+  String? processFramePipeline({
+    required RecognizedText text, //Texto del OCR
+    required Rect roi, //Rectángulo de interés (ROI)
     required Size screenSize,
     required Size imageSize,
   }) {
@@ -55,12 +58,13 @@ class PriceInterpreter {
     double imgWidth = imageSize.width;
     double imgHeight = imageSize.height;
 
-    if (screenSize.height > screenSize.width &&
-        imageSize.width > imageSize.height) {
+    // ✅🤳🏻 Evalúa si la resolución viene invertida
+    if (screenSize.height > screenSize.width && imageSize.width > imageSize.height) {
       imgWidth = imageSize.height;
       imgHeight = imageSize.width;
     }
 
+    // Obtengo el tamaño real de la foto para que coincida lo que el usuario vé de la cámara (Box.cover) con la foto tomada por la camara
     final double scale = max(
       screenSize.width / imgWidth,
       screenSize.height / imgHeight,
@@ -68,20 +72,15 @@ class PriceInterpreter {
     final double offsetX = ((imgWidth * scale) - screenSize.width) / 2;
     final double offsetY = ((imgHeight * scale) - screenSize.height) / 2;
 
-    // PASO 1: Filtrado Espacial
-    List<TextLine> validLines = _paso1FiltrarEnPantalla(
-      text,
-      roi,
-      scale,
-      offsetX,
-      offsetY,
-    );
+    // 1️⃣ PASO 1: Filtrado Espacial
+    List<TextLine> linesInRoi = PriceRoiFilter.filterPricesOnROI(text, roi, scale, offsetX, offsetY,);
 
-    // PASO 2: Agrupación de Vecinos
-    List<List<TextLine>> groupedCandidates = _paso2AgruparBloques(validLines);
+    // 2️⃣ PASO 2: Agrupación de Vecinos
+    //List<List<TextLine>> groupedCandidates = _paso2AgruparBloques(linesInRoi);
+    List<List<TextLine>> groupedCandidates = PriceGroupsLogic.agruparPrecioPorLider(linesInRoi);
 
-    // PASO 3: Análisis y Extracción del Ganador
-    return _paso3AnalizarYExtraer(
+    // 3️⃣ PASO 3: Análisis y Extracción del Ganador
+    return PriceCompleteAnalizer.AnalizarYExtraer(
       groupedCandidates,
       roi.center,
       scale,
@@ -90,178 +89,23 @@ class PriceInterpreter {
     );
   }
 
-  // 🧮 TODO PROCESAMIENTO
-  List<TextLine> _paso1FiltrarEnPantalla(
-    RecognizedText text,
-    Rect roi,
-    double scale,
-    double offsetX,
-    double offsetY,
-  ) {
-    List<TextLine> validLines = [];
-
-    for (TextBlock block in text.blocks) {
-      for (TextLine line in block.lines) {
-        final Rect rectInScreen = Rect.fromLTRB(
-          (line.boundingBox.left * scale) - offsetX,
-          (line.boundingBox.top * scale) - offsetY,
-          (line.boundingBox.right * scale) - offsetX,
-          (line.boundingBox.bottom * scale) - offsetY,
-        );
-
-        if (roi.overlaps(rectInScreen)) {
-          validLines.add(line);
-          print(
-            "PASO 1: Encontré esto en pantalla (dentro del área): '${line.text}'",
-          );
-        }
-      }
-    }
-    return validLines;
-  }
-
-  List<List<TextLine>> _paso2AgruparBloques(List<TextLine> validLines) {
-    List<List<TextLine>> groupedCandidates = [];
-
-    for (int i = 0; i < validLines.length; i++) {
-      TextLine mainLine = validLines[i];
-      List<TextLine> row = [mainLine];
-
-      for (int j = 0; j < validLines.length; j++) {
-        if (i == j) continue;
-        TextLine otherLine = validLines[j];
-
-        double diffY =
-            (mainLine.boundingBox.center.dy - otherLine.boundingBox.center.dy)
-                .abs();
-        bool sameRow = diffY < mainLine.boundingBox.height;
-        bool isToTheRight =
-            otherLine.boundingBox.center.dx > mainLine.boundingBox.center.dx;
-        bool isClose =
-            (otherLine.boundingBox.left - mainLine.boundingBox.right).abs() <
-            (mainLine.boundingBox.width * 2.5);
-
-        if (sameRow && isToTheRight && isClose) {
-          row.add(otherLine);
-        }
-      }
-
-      row.sort((a, b) => a.boundingBox.left.compareTo(b.boundingBox.left));
-      groupedCandidates.add(row);
-
-      String combinedText = row.map((e) => e.text).join(' ');
-      print("PASO 2: Me quedo solo con estos bloques unidos: '$combinedText'");
-    }
-
-    return groupedCandidates;
-  }
-
-  String? _paso3AnalizarYExtraer(
-    List<List<TextLine>> groupedCandidates,
-    Offset roiCenter,
-    double scale,
-    double offsetX,
-    double offsetY,
-  ) {
-    String? bestPrice;
-    double minDistance = double.infinity;
-
-    for (List<TextLine> row in groupedCandidates) {
-      String combinedText = row.map((e) => e.text).join(' ');
-
-      print(
-        "PASO 3: Analizo formato de precio completo en este bloque: '$combinedText'",
-      );
-
-      final price = _cleanAndExtractPrice(combinedText);
-
-      if (price != null) {
-        print("   -> ✅ ES UN PRECIO VÁLIDO: '$price'");
-
-        double minLeft = row.map((e) => e.boundingBox.left).reduce(min);
-        double minTop = row.map((e) => e.boundingBox.top).reduce(min);
-        double maxRight = row.map((e) => e.boundingBox.right).reduce(max);
-        double maxBottom = row.map((e) => e.boundingBox.bottom).reduce(max);
-
-        final Offset combinedCenterInImage = Offset(
-          (minLeft + maxRight) / 2,
-          (minTop + maxBottom) / 2,
-        );
-
-        final Offset centerInScreen = Offset(
-          (combinedCenterInImage.dx * scale) - offsetX,
-          (combinedCenterInImage.dy * scale) - offsetY,
-        );
-
-        final double distance = sqrt(
-          pow(centerInScreen.dx - roiCenter.dx, 2) +
-              pow(centerInScreen.dy - roiCenter.dy, 2),
-        );
-
-        if (distance < minDistance) {
-          minDistance = distance;
-          bestPrice = price;
-        }
-      } else {
-        print("   -> ❌ NO TIENE FORMATO. Descartado.");
-      }
-    }
-
-    if (bestPrice != null) {
-      print("🏆 GANADOR DEL FRAME (Más central): '$bestPrice'");
-    }
-
-    return bestPrice;
-  }
-
-  String? _cleanAndExtractPrice(String rawText) {
-    // 1. EL ENSAMBLADOR AGRESIVO: Sanea espacios de separadores decimales
-    String preProcessed = rawText.replaceAllMapped(
-      RegExp(r'(\d+)\s*[.,]?\s+(\d{1,2})\b'),
-      (Match m) => '${m[1]}.${m[2]}',
-    );
-
-    preProcessed = preProcessed.replaceAllMapped(
-      RegExp(r'(\d+)\s+([.,])\s*(\d{1,2})'),
-      (Match m) => '${m[1]}.${m[3]}',
-    );
-
-    // 2. SEPARAMOS POR PALABRAS
-    List<String> words = preProcessed.split(RegExp(r'\s+'));
-
-    for (String word in words) {
-      String cleanedWord = word;
-
-      // Diccionario de sustitución visual
-      cleanedWord = cleanedWord.replaceAll(RegExp(r'[oO]'), '0');
-      cleanedWord = cleanedWord.replaceAll(RegExp(r'[iIlL]'), '1');
-      cleanedWord = cleanedWord.replaceAll(RegExp(r'[zZ]'), '2');
-      cleanedWord = cleanedWord.replaceAll(RegExp(r'[sS]'), '5');
-      cleanedWord = cleanedWord.replaceAll(RegExp(r'[gGqQ]'), '9');
-      cleanedWord = cleanedWord.replaceAll(RegExp(r'[bB]'), '8');
-
-      // 3. LA REGLA ESTRICTA (Escudo anti-letras)
-      String testWord = cleanedWord.replaceAll(RegExp(r'[\$R.,]'), '');
-      bool hasLetters = RegExp(r'[a-zA-Z]').hasMatch(testWord);
-
-      if (hasLetters) {
-        continue; // RECHAZADO: Contiene caracteres alfabéticos mezclados
-      }
-
-      // 4. VALIDACIÓN DE ESTRUCTURA MATEMÁTICA IMPLACABLE
-      String finalNumber = cleanedWord.replaceAll(RegExp(r'[^\d.,]'), '');
-      finalNumber = finalNumber.replaceAll(',', '.');
-
-      // 🔥 AJUSTE QUIRÚRGICO: Modificamos la Regex para exigir OBLIGATORIAMENTE centavos (\.\d{1,2})
-      // Eliminamos el signo '?' del grupo decimal. Si no hay punto y centavos, se descarta el frame.
-      // Además, exigimos que el número entero no empiece con ceros basura innecesarios.
-      final match = RegExp(r'^[1-9]\d*\.\d{1,2}$').firstMatch(finalNumber);
-
-      if (match != null) {
-        return match.group(0)!; // Retorna estrictamente la estructura "X.XX"
-      }
-    }
-
-    return null; // Bloquea cualquier lectura huérfana o incompleta
+  // 📦 Función auxiliar para empaquetar los clones virtuales con el mismo tipo nativo
+  List<TextLine> _crearLineasVirtuales(String entero, String centavo, TextLine original) {
+    return [
+      TextLine(
+        text: entero,
+        boundingBox: original.boundingBox,
+        elements: original.elements,
+        cornerPoints: original.cornerPoints,
+        recognizedLanguages: original.recognizedLanguages, confidence: null, angle: null,
+      ),
+      TextLine(
+        text: centavo,
+        boundingBox: original.boundingBox,
+        elements: original.elements,
+        cornerPoints: original.cornerPoints,
+        recognizedLanguages: original.recognizedLanguages, confidence: null, angle: null,
+      )
+    ];
   }
 }

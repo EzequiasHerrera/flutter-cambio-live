@@ -38,13 +38,11 @@ class _CameraScreenState extends State<CameraScreen>
     WidgetsBinding.instance.addObserver(this);
     _initializeCamera();
   }
-
   void _initializeCamera() {
     _camera.initialize(_onFrame).then((_) {
       if (mounted) setState(() {});
     });
   }
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_camera.controller == null || !_camera.isInitialized) return;
@@ -56,7 +54,6 @@ class _CameraScreenState extends State<CameraScreen>
       _initializeCamera();
     }
   }
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -91,7 +88,7 @@ class _CameraScreenState extends State<CameraScreen>
       );
 
       // 💵 OBTIENE EL PRECIO CRUDO
-      final rawPrice = _priceInterpreter.extractPriceFromRoi(
+      final rawPrice = _priceInterpreter.processFramePipeline(
         text: text,
         roi: roi,
         screenSize: screenSize,
