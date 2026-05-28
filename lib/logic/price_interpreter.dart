@@ -4,6 +4,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:howmuch/logic/price_complete_analizer.dart';
 import 'package:howmuch/logic/price_groups_logic.dart';
 import 'package:howmuch/logic/price_roi_filter.dart';
+import 'package:howmuch/services/ocr_service.dart';
 
 class PriceInterpreter {
   final List<String> _history = [];
@@ -12,7 +13,7 @@ class PriceInterpreter {
   String? getStablePrice(String newDetection) {
     _history.add(newDetection);
 
-    // Volvemos a un historial de 5 para tener la amortiguación perfecta
+    // Historial de 5 lecturas para determinar el ganador
     if (_history.length > 5) _history.removeAt(0);
 
     Map<String, int> counts = {};
@@ -36,7 +37,7 @@ class PriceInterpreter {
       // Exigimos 4 lecturas idénticas para permitir que otro número lo reemplace.
       else if (_stableText.isNotEmpty &&
           winner != _stableText &&
-          maxCount >= 4) {
+          maxCount >= OCRService.requiredMatches) {
         _stableText = winner!;
       }
     }

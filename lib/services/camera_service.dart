@@ -57,9 +57,14 @@ class CameraService {
     }
   }
 
-  void dispose() {
-    if (isInitialized) controller?.stopImageStream();
-    controller?.dispose();
+  Future<void> dispose() async {
+    if (controller != null) {
+      if (isInitialized) {
+        await controller!.stopImageStream();
+      }
+      await controller!.dispose();
+      controller = null; // IMPORTANTE: Anular para evitar errores de referencia
+    }
     isInitialized = false;
     _isProcessingFrame = false;
   }

@@ -6,6 +6,7 @@ import 'dart:math';
 import '../services/camera_service.dart';
 import '../services/ocr_service.dart';
 import '../logic/price_interpreter.dart';
+import '../widgets/action_button.dart';
 import '../widgets/price_card.dart';
 import '../widgets/howie.dart';
 import '../widgets/custom_app_bar.dart';
@@ -19,10 +20,12 @@ class CameraScreen extends StatefulWidget {
   State<CameraScreen> createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver {
+class _CameraScreenState extends State<CameraScreen>
+    with WidgetsBindingObserver {
   final CameraService _camera = CameraService();
   final OCRService _ocr = OCRService();
   final PriceInterpreter _priceInterpreter = PriceInterpreter();
+  bool _isInitializing = false;
 
   // Variables para el Debug
   List<({String text, Rect rect})> _tusDeteccionesDelFrame = [];
@@ -46,17 +49,23 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     _initializeCamera();
   }
 
-  void _initializeCamera() {
-    _camera.initialize(_onFrame).then((_) {
-      if (mounted) setState(() {});
-    });
+  void _initializeCamera() async {
+    if (_isInitializing) return;
+    _isInitializing = true;
+
+    await _camera.initialize(_onFrame);
+
+    if (mounted) {
+      setState(() {});
+    }
+    _isInitializing = false;
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_camera.controller == null || !_camera.isInitialized) return;
-    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
-      _camera.dispose();
+  Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      await _camera.dispose(); // Esperamos a que el hardware se libere
     } else if (state == AppLifecycleState.resumed) {
       _initializeCamera();
     }
@@ -74,7 +83,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     if (!mounted || _isProcessing) return;
 
     final now = DateTime.now();
-    if (now.difference(_lastProcessTime).inMilliseconds < 300) return;
+    if (now.difference(_lastProcessTime).inMilliseconds <
+        OCRService.processIntervalMs)
+      return;
 
     _isProcessing = true;
     _lastProcessTime = now;
@@ -91,12 +102,16 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       // Cálculo de geometría (para que los cuadros verdes calcen)
       double imgWidth = imgSize.width;
       double imgHeight = imgSize.height;
-      if (screenSize.height > screenSize.width && imgSize.width > imgSize.height) {
+      if (screenSize.height > screenSize.width &&
+          imgSize.width > imgSize.height) {
         imgWidth = imgSize.height;
         imgHeight = imgSize.width;
       }
 
-      final double scale = max(screenSize.width / imgWidth, screenSize.height / imgHeight);
+      final double scale = max(
+        screenSize.width / imgWidth,
+        screenSize.height / imgHeight,
+      );
       final double offsetX = ((imgWidth * scale) - screenSize.width) / 2;
       final double offsetY = ((imgHeight * scale) - screenSize.height) / 2;
 
@@ -108,7 +123,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
         _tusDeteccionesDelFrame = [
           for (var block in text.blocks)
             for (var line in block.lines)
-              (text: line.text, rect: line.boundingBox)
+              (text: line.text, rect: line.boundingBox),
         ];
       });
 
@@ -149,7 +164,10 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     if (!_camera.isInitialized || _camera.controller == null) {
-      return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     final provider = Provider.of<AppProvider>(context);
@@ -160,6 +178,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
+          // Cámara ocupando to-do el espacio con su proporción correcta
           Positioned.fill(
             child: FittedBox(
               fit: BoxFit.cover,
@@ -171,41 +190,91 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
             ),
           ),
 
+          // Overlay oscuro con recorte de la zona de lectura (ROI)
           ColorFiltered(
-            colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.6), BlendMode.srcOut),
-            child: Stack(children: [
-              Container(decoration: const BoxDecoration(color: Colors.transparent, backgroundBlendMode: BlendMode.dstOut)),
-              Center(child: Container(width: rectWidth, height: rectHeight, decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(15)))),
-            ]),
+            colorFilter: ColorFilter.mode(
+              Colors.black.withValues(alpha: 0.6),
+              BlendMode.srcOut,
+            ),
+            child: Stack(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,
+                    backgroundBlendMode: BlendMode.dstOut,
+                  ),
+                ),
+                Center(
+                  child: Container(
+                    width: rectWidth,
+                    height: rectHeight,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
 
+          // Rectángulo guía visual
           Center(
             child: Container(
               width: rectWidth,
               height: rectHeight,
-              decoration: BoxDecoration(border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.8), width: 3), borderRadius: BorderRadius.circular(15)),
-            ),
-          ),
-
-          //👁️♦️ CAPA DE DEBUG INTEGRADA
-          if(_showDebugOverlay)
-          Positioned.fill(
-            child: CustomPaint(
-              painter: DebugOverlayPainter(
-                _tusDeteccionesDelFrame,
-                scale: _scale,
-                offsetX: _offsetX,
-                offsetY: _offsetY,
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: Colors.blueAccent.withValues(alpha: 0.8),
+                  width: 3,
+                ),
+                borderRadius: BorderRadius.circular(15),
               ),
             ),
           ),
 
+          // Botón de Debug pequeño arriba a la derecha
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 70,
+            right: 20,
+            child: ActionButton(
+              width: 55, // Botón cuadrado
+              icon: _showDebugOverlay ? Icons.bug_report : Icons.bug_report_outlined,
+              onPressed: () {
+                setState(() {
+                  _showDebugOverlay = !_showDebugOverlay;
+                });
+              },
+            ),
+          ),
+
+          //👁️♦️ CAPA DE DEBUG INTEGRADA (Agregado IgnorePointer para que el botón sea cliqueable)
+          if (_showDebugOverlay)
+            IgnorePointer(
+              child: Positioned.fill(
+                child: CustomPaint(
+                  painter: DebugOverlayPainter(
+                    _tusDeteccionesDelFrame,
+                    scale: _scale,
+                    offsetX: _offsetX,
+                    offsetY: _offsetY,
+                  ),
+                ),
+              ),
+            ),
+
+          // Animación de Howie reaccionando al precio
           Positioned(
             bottom: _val != null ? 190 : 40,
             left: 0,
-            child: AnimatedContainer(duration: const Duration(milliseconds: 300), height: 200, child: const Howie()),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              height: 200,
+              child: const Howie(),
+            ),
           ),
 
+          // Tarjeta inferior con el precio convertido
           if (_val != null)
             Positioned(
               bottom: 40,
@@ -216,8 +285,16 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                 convertedValue: _conv!,
                 currencyCode: provider.targetCurrency?.code ?? '',
                 onSave: () {
-                  Provider.of<AppProvider>(context, listen: false).addToCart(_val!, _conv!);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Guardado en el carrito'), behavior: SnackBarBehavior.floating));
+                  Provider.of<AppProvider>(
+                    context,
+                    listen: false,
+                  ).addToCart(_val!, _conv!);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Guardado en el carrito'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
                 },
               ),
             ),
