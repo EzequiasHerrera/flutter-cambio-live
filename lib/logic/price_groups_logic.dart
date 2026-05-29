@@ -6,15 +6,15 @@ class PriceGroupsLogic {
   static final RegExp _rxTieneNumeros = RegExp(r'[0-9]');
   static final RegExp _rxLetrasYBasura = RegExp(r'[^0-9.,]');
   static final RegExp _rxSoloDigitos = RegExp(r'[^0-9]');
-  static final RegExp _rxNativoPerfecto = RegExp(r'[.,]\d{2}$');
+  static final RegExp _rxNativoPerfecto = RegExp(r'^(\d{1,3}([.,]\d{3})*)[.,]\d{2}$');
 
-  // ================================================|=====================
+  // =====================================================================
   // 🚀 METODO PRINCIPAL (Ahora es un esquema limpio y fácil de leer)
   // =====================================================================
   static List<List<TextLine>> agruparPrecioPorLider(List<TextLine> linesInRoi) {
     print("========== PASO 2: INICIANDO ANÁLISIS DE CANDIDATOS ==========");
 
-    // 1. Descartar basura
+    // 1. Descartar basura de todo lo leído en el ROI
     final digitLines = _filtrarNumeros(linesInRoi);
     if (digitLines.isEmpty) {
       print("❌ PASO 2: No hay líneas numéricas en el visor. Abortando frame.");
@@ -32,10 +32,7 @@ class PriceGroupsLogic {
   // 🛠️ METODOS PRIVADOS (Los sub-departamentos)
   // =====================================================================
 
-  static List<TextLine> _filtrarNumeros(List<TextLine> lines) {
-    return lines.where((line) => _rxTieneNumeros.hasMatch(line.text)).toList();
-  }
-
+  //TODO: Centralizar guardado en el lote dentro de la función principal AQUI
   static List<List<TextLine>> _procesarEstrategias(List<TextLine> digitLines) {
     final List<List<TextLine>> lote = [];
 
@@ -46,10 +43,10 @@ class PriceGroupsLogic {
 
       print("\n🔍 EVALUANDO LÍNEA: '$textoOriginal'");
 
-      // Probamos el Caso A (si entra, pasa a la siguiente línea)
+      // Probamos el Caso A (si entra, pasa a la siguiente línea) 12,90 - 3,50 - 100,99
       if (_evaluarCasoA(textoLimpio, baseLine, lote)) continue;
 
-      // Probamos el Caso B (si entra, pasa a la siguiente línea)
+      // Probamos el Caso B (si entra, pasa a la siguiente línea) 100099 asume que es 1000,99 LO FRACTURA
       if (_evaluarCasoB(digitosPuros, baseLine, lote)) continue;
 
       // Si no fue A ni B, probamos el Caso C
@@ -59,15 +56,23 @@ class PriceGroupsLogic {
     return lote;
   }
 
+  //👁️ FILTRA TEXTO SIN NÚMEROS
+  static List<TextLine> _filtrarNumeros(List<TextLine> lines) {
+    return lines.where((line) => _rxTieneNumeros.hasMatch(line.text)).toList();
+  }
+
+  //✅ FORMATO PERFECTO
   static bool _evaluarCasoA(String textoLimpio, TextLine baseLine, List<List<TextLine>> lote) {
     if (_rxNativoPerfecto.hasMatch(textoLimpio)) {
-      print("   ✅ FORMATO PERFECTO: Contiene separador decimal nativo. Guardado intacto.");
+      // Normalización interna: estandarizamos el separador decimal a punto
+      print("   ✅ FORMATO PERFECTO: $textoLimpio");
       lote.add([baseLine]);
       return true;
     }
     return false;
   }
 
+  //🦴 FRACTURA TODO: ACÁ VOY A TENER QUE REVISAR Y VERIFICAR SI ES UN NÚMERO ENTERO O SE TRATA DE UNA FRACCIÓN (ANALIZO CARACTER POR CARACTER)
   static bool _evaluarCasoB(String digitosPuros, TextLine baseLine, List<List<TextLine>> lote) {
     if (digitosPuros.length >= 3) {
       final String parteCentavo = digitosPuros.substring(digitosPuros.length - 2);
@@ -85,6 +90,7 @@ class PriceGroupsLogic {
     return false;
   }
 
+  //🧬 UNIÓN
   static void _evaluarCasoC(TextLine baseLine, List<TextLine> digitLines, List<List<TextLine>> lote) {
     final List<TextLine> vecinos = digitLines.where((candidate) {
       if (candidate == baseLine) return false;

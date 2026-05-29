@@ -1,65 +1,69 @@
 class PriceClean {
-  // 🔥 OPTIMIZACIÓN: Compilamos las reglas estáticas una sola vez en memoria
   static final RegExp _rxAssemble1 = RegExp(r'(\d+)\s*[.,]?\s+(\d{1,2})\b');
   static final RegExp _rxAssemble2 = RegExp(r'(\d+)\s+([.,])\s*(\d{1,2})');
   static final RegExp _rxSpaces = RegExp(r'\s+');
-  static final RegExp _rxO = RegExp(r'[oO]');
-  static final RegExp _rxI = RegExp(r'[iIlL]');
-  static final RegExp _rxZ = RegExp(r'[zZ]');
-  static final RegExp _rxS = RegExp(r'[sS]');
-  static final RegExp _rxG = RegExp(r'[gGqQ]');
-  static final RegExp _rxB = RegExp(r'[bB]');
+
+  static final Map<RegExp, String> _replacements = {
+    RegExp(r'[oO]'): '0',
+    RegExp(r'[iIlL]'): '1',
+    RegExp(r'[zZ]'): '2',
+    RegExp(r'[sS]'): '5',
+    RegExp(r'[gGqQ]'): '9',
+    RegExp(r'[bB]'): '8',
+  };
+
   static final RegExp _rxLettersShield = RegExp(r'[\$R.,]');
   static final RegExp _rxHasLetters = RegExp(r'[a-zA-Z]');
   static final RegExp _rxCleanMath = RegExp(r'[^\d.,]');
-  static final RegExp _rxFinalMatch = RegExp(r'^[1-9]\d*\.\d{1,2}$');
+  // Esta regla se mantiene, pero la usaremos con cuidado en la lógica
+  static final RegExp _rxThousandsSeparator = RegExp(r'[.,](?=\d{3})');
+  static final RegExp _rxFinalMatch = RegExp(r'^(0|[1-9]\d*)\.\d{1,2}$');
 
   static String? cleanAndExtractPrice(String rawText) {
-    // 1. EL ENSAMBLADOR AGRESIVO: Sanea espacios de separadores decimales
-    String preProcessed = rawText.replaceAllMapped(
-      _rxAssemble1,
-          (Match m) => '${m[1]}.${m[2]}',
-    );
+    String preProcessed = rawText
+        .replaceAllMapped(_rxAssemble1, (m) => '${m[1]}.${m[2]}')
+        .replaceAllMapped(_rxAssemble2, (m) => '${m[1]}.${m[3]}');
 
-    preProcessed = preProcessed.replaceAllMapped(
-      _rxAssemble2,
-          (Match m) => '${m[1]}.${m[3]}',
-    );
+    for (String word in preProcessed.split(_rxSpaces)) {
+      // 1. Limpiamos espacios internos para unir fragmentos de precio
+      String cleaned = word.replaceAll(' ', '');
 
-    // 2. SEPARAMOS POR PALABRAS
-    List<String> words = preProcessed.split(_rxSpaces);
+      // Si después de quitar espacios está vacío, lo saltamos
+      if (cleaned.isEmpty) continue;
 
-    for (String word in words) {
-      String cleanedWord = word;
+      // 2. Aplicar diccionario de caracteres
+      _replacements.forEach((reg, replacement) {
+        cleaned = cleaned.replaceAll(reg, replacement);
+      });
 
-      // Diccionario de sustitución visual (usando memoria estática)
-      cleanedWord = cleanedWord.replaceAll(_rxO, '0');
-      cleanedWord = cleanedWord.replaceAll(_rxI, '1');
-      cleanedWord = cleanedWord.replaceAll(_rxZ, '2');
-      cleanedWord = cleanedWord.replaceAll(_rxS, '5');
-      cleanedWord = cleanedWord.replaceAll(_rxG, '9');
-      cleanedWord = cleanedWord.replaceAll(_rxB, '8');
-
-      // 3. LA REGLA ESTRICTA (Escudo anti-letras)
-      String testWord = cleanedWord.replaceAll(_rxLettersShield, '');
-      bool hasLetters = _rxHasLetters.hasMatch(testWord);
-
-      if (hasLetters) {
-        continue; // RECHAZADO: Contiene caracteres alfabéticos mezclados
+      // 3. Validar escudo anti-letras
+      if (_rxHasLetters.hasMatch(cleaned.replaceAll(_rxLettersShield, ''))) {
+        // Opcional: print("RECHAZADO por letras: $cleaned");
+        continue;
       }
 
-      // 4. VALIDACIÓN DE ESTRUCTURA MATEMÁTICA IMPLACABLE
-      String finalNumber = cleanedWord.replaceAll(_rxCleanMath, '');
-      finalNumber = finalNumber.replaceAll(',', '.');
+      // 4. Limpieza matemática
+      String finalNumber = cleaned.replaceAll(_rxCleanMath, '').replaceAll(',', '.');
 
-      // 🔥 AJUSTE QUIRÚRGICO (con RegExp estática)
+      if (finalNumber.contains('.')) {
+        List<String> parts = finalNumber.split('.');
+        String decimalPart = parts.last;
+        String integerPart = parts.sublist(0, parts.length - 1).join('');
+        finalNumber = '$integerPart.$decimalPart';
+      }
+
+      // 5. Validación final y RECHAZO explícito
       final match = _rxFinalMatch.firstMatch(finalNumber);
 
       if (match != null) {
-        return match.group(0)!; // Retorna estrictamente la estructura "X.XX"
+        return match.group(0);
+      } else {
+        // Aquí es donde "rechazas" el formato que no encaja
+        // print("RECHAZADO por formato final: $finalNumber");
+        continue;
       }
     }
 
-    return null; // Bloquea cualquier lectura huérfana o incompleta
+    return null;
   }
 }

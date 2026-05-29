@@ -13,10 +13,10 @@ class PriceCompleteAnalizer {
       double offsetY,
       ) {
     String? bestPrice;
-    double minDistance = double.infinity;
+    double minDistance = double.infinity; // ES PARA QUE SIEMPRE EL PRIMER PRECIO SEA EL GANADOR
 
-    for (List<TextLine> row in groupedCandidates) {
-      String combinedText = row.map((e) => e.text).join(' ');
+    for (List<TextLine> row in groupedCandidates) { // Tomo por ejemplo "1.000,85"
+      String combinedText = row.map((e) => e.text).join(' '); // Queda como "1.000,85"
 
       print(
         "PASO 3: Analizo formato de precio completo en este bloque: '$combinedText'",
