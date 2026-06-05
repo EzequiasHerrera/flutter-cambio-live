@@ -17,7 +17,7 @@ class CameraService {
 
     controller = CameraController(
       cameras.first,
-      ResolutionPreset.ultraHigh,
+      ResolutionPreset.high,
       enableAudio: false,
       imageFormatGroup: Platform.isAndroid
           ? ImageFormatGroup.yuv420

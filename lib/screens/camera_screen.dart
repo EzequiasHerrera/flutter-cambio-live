@@ -34,6 +34,7 @@ class _CameraScreenState extends State<CameraScreen>
   double _offsetY = 0.0;
 
   bool _isProcessing = false;
+  bool _isCalculatingManually = false;
   DateTime _lastProcessTime = DateTime.now();
   double? _val, _conv;
   String _txt = "";
@@ -80,7 +81,7 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   void _onFrame(InputImage inputImage) async {
-    if (!mounted || _isProcessing) return;
+    if (!mounted || _isProcessing || _isCalculatingManually) return;
 
     final now = DateTime.now();
     if (now.difference(_lastProcessTime).inMilliseconds <
@@ -145,6 +146,8 @@ class _CameraScreenState extends State<CameraScreen>
       if (stable == null) return;
 
       final provider = Provider.of<AppProvider>(context, listen: false);
+
+      // TODO: FORMATEAR ESTE PRECIO PARA MOSTRARLO DE LA FORMA CORRECTA: 1000000,85 -> 1.000.000,85 o 1,000,000.85
       final val = double.tryParse(stable.replaceAll(',', '.'));
 
       if (val != null && val > 0) {
@@ -262,6 +265,21 @@ class _CameraScreenState extends State<CameraScreen>
                 ),
               ),
             ),
+
+          // 🧮 Botón de Calculadora
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 140,
+            right: 20,
+            child: ActionButton(
+              width: 55, // Botón cuadrado
+              icon: _isCalculatingManually ? Icons.calculate : Icons.calculate_outlined,
+              onPressed: () {
+                setState(() {
+                  _isCalculatingManually = !_isCalculatingManually;
+                });
+              },
+            ),
+          ),
 
           // Animación de Howie reaccionando al precio
           Positioned(

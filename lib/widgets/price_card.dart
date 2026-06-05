@@ -92,7 +92,7 @@ class PriceCard extends StatelessWidget {
             const Divider(color: Colors.black12, height: 25),
             // Precio convertido
             Text(
-              '$currencyCode ${convertedValue.toStringAsFixed(2)}',
+              '$currencyCode ${formatPrice(convertedValue)}', // Aquí aplicas el cambio
               style: const TextStyle(
                 color: Color(0xFF8C4404),
                 fontSize: 38,
@@ -110,4 +110,9 @@ class PriceCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String formatPrice(double price) {
+  String s = price.toStringAsFixed(2).replaceAll('.', ',');
+  return s.replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
 }
