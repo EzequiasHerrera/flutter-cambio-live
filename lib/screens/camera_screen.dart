@@ -3,6 +3,8 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:provider/provider.dart';
 import 'package:camera/camera.dart';
 import 'dart:math';
+import 'dart:async';
+import 'package:flutter/services.dart';
 import '../services/camera_service.dart';
 import '../services/ocr_service.dart';
 import '../logic/price_interpreter.dart';
@@ -39,6 +41,11 @@ class _CameraScreenState extends State<CameraScreen>
   double? _val, _conv;
   String _txt = "";
   bool _showDebugOverlay = true; //👁️♦️
+
+  // Controladores para el modo manual
+  final TextEditingController _manualPriceController = TextEditingController();
+  final FocusNode _manualFocusNode = FocusNode();
+  Timer? _debounceTimer;
 
   final double rectWidth = 300;
   final double rectHeight = 180;
@@ -77,7 +84,41 @@ class _CameraScreenState extends State<CameraScreen>
     WidgetsBinding.instance.removeObserver(this);
     _camera.dispose();
     _ocr.dispose();
+    _manualPriceController.dispose();
+    _manualFocusNode.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  void _onManualAmountChanged(String value) {
+    // Si el usuario borra todo, reseteamos el estado
+    if (value.isEmpty) {
+      _debounceTimer?.cancel();
+      setState(() {
+        _txt = "";
+        _val = null;
+        _conv = null;
+      });
+      return;
+    }
+
+    // Debounce de 2 segundos antes de procesar la conversión
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
+
+      final cleanedValue = value.replaceAll(',', '.');
+      final val = double.tryParse(cleanedValue);
+
+      if (val != null && val > 0) {
+        final provider = Provider.of<AppProvider>(context, listen: false);
+        setState(() {
+          _txt = value;
+          _val = val;
+          _conv = provider.convert(val);
+        });
+      }
+    });
   }
 
   void _onFrame(InputImage inputImage) async {
@@ -174,14 +215,16 @@ class _CameraScreenState extends State<CameraScreen>
     }
 
     final provider = Provider.of<AppProvider>(context);
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       appBar: const CustomAppBar(showCart: true),
       backgroundColor: Colors.black,
       extendBodyBehindAppBar: true,
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // Cámara ocupando to-do el espacio con su proporción correcta
+          // Cámara ocupando todo el espacio con su proporción correcta
           Positioned.fill(
             child: FittedBox(
               fit: BoxFit.cover,
@@ -194,47 +237,49 @@ class _CameraScreenState extends State<CameraScreen>
           ),
 
           // Overlay oscuro con recorte de la zona de lectura (ROI)
-          ColorFiltered(
-            colorFilter: ColorFilter.mode(
-              Colors.black.withValues(alpha: 0.6),
-              BlendMode.srcOut,
-            ),
-            child: Stack(
-              children: [
-                Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.transparent,
-                    backgroundBlendMode: BlendMode.dstOut,
-                  ),
-                ),
-                Center(
-                  child: Container(
-                    width: rectWidth,
-                    height: rectHeight,
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(15),
+          if (!_isCalculatingManually)
+            ColorFiltered(
+              colorFilter: ColorFilter.mode(
+                Colors.black.withValues(alpha: 0.6),
+                BlendMode.srcOut,
+              ),
+              child: Stack(
+                children: [
+                  Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.transparent,
+                      backgroundBlendMode: BlendMode.dstOut,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-
-          // Rectángulo guía visual
-          Center(
-            child: Container(
-              width: rectWidth,
-              height: rectHeight,
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: Colors.blueAccent.withValues(alpha: 0.8),
-                  width: 3,
-                ),
-                borderRadius: BorderRadius.circular(15),
+                  Center(
+                    child: Container(
+                      width: rectWidth,
+                      height: rectHeight,
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
+
+          // Rectángulo guía visual (solo si no estamos calculando manualmente)
+          if (!_isCalculatingManually)
+            Center(
+              child: Container(
+                width: rectWidth,
+                height: rectHeight,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Colors.blueAccent.withValues(alpha: 0.8),
+                    width: 3,
+                  ),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+            ),
 
           // Botón de Debug pequeño arriba a la derecha
           Positioned(
@@ -276,14 +321,55 @@ class _CameraScreenState extends State<CameraScreen>
               onPressed: () {
                 setState(() {
                   _isCalculatingManually = !_isCalculatingManually;
+                  if (_isCalculatingManually) {
+                    // Limpiamos estados previos para entrar en modo manual puro
+                    _val = null;
+                    _conv = null;
+                    _txt = "";
+                    _tusDeteccionesDelFrame = [];
+                    _manualPriceController.clear();
+                    _manualFocusNode.requestFocus();
+                  } else {
+                    _manualFocusNode.unfocus();
+                  }
                 });
               },
             ),
           ),
 
+          // Campo de texto para ingreso manual (centrado en el ROI)
+          if (_isCalculatingManually)
+            Center(
+              child: Container(
+                width: rectWidth,
+                height: rectHeight,
+                alignment: Alignment.center,
+                child: TextField(
+                  controller: _manualPriceController,
+                  focusNode: _manualFocusNode,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 42,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: "0.00",
+                    hintStyle: TextStyle(color: Colors.white24),
+                    border: InputBorder.none,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
+                  ],
+                  onChanged: _onManualAmountChanged,
+                ),
+              ),
+            ),
+
           // Animación de Howie reaccionando al precio
           Positioned(
-            bottom: _val != null ? 190 : 40,
+            bottom: (_val != null ? 190 : 40) + keyboardHeight,
             left: 0,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
@@ -295,7 +381,7 @@ class _CameraScreenState extends State<CameraScreen>
           // Tarjeta inferior con el precio convertido
           if (_val != null)
             Positioned(
-              bottom: 40,
+              bottom: 40 + keyboardHeight,
               left: 20,
               right: 20,
               child: PriceCard(
