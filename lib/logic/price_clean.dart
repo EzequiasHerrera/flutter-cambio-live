@@ -1,8 +1,10 @@
 class PriceClean {
+  // Regex patterns for assembling fragmented prices
   static final RegExp _rxAssemble1 = RegExp(r'(\d+)\s*[.,]?\s+(\d{1,2})\b');
   static final RegExp _rxAssemble2 = RegExp(r'(\d+)\s+([.,])\s*(\d{1,2})');
   static final RegExp _rxSpaces = RegExp(r'\s+');
 
+  // OCR correction mapping
   static final Map<RegExp, String> _replacements = {
     RegExp(r'[oO]'): '0',
     RegExp(r'[iIlL]'): '1',
@@ -15,52 +17,43 @@ class PriceClean {
   static final RegExp _rxLettersShield = RegExp(r'[\$R.,]');
   static final RegExp _rxHasLetters = RegExp(r'[a-zA-Z]');
   static final RegExp _rxCleanMath = RegExp(r'[^\d.,]');
-  // Esta regla se mantiene, pero la usaremos con cuidado en la lógica
-  static final RegExp _rxThousandsSeparator = RegExp(r'[.,](?=\d{3})');
   static final RegExp _rxFinalMatch = RegExp(r'^(0|[1-9]\d*)\.\d{1,2}$');
 
+  /// Cleans raw OCR text and attempts to extract a valid price format (e.g., 123.45).
   static String? cleanAndExtractPrice(String rawText) {
+    // Pre-process common fragmentation patterns
     String preProcessed = rawText
         .replaceAllMapped(_rxAssemble1, (m) => '${m[1]}.${m[2]}')
         .replaceAllMapped(_rxAssemble2, (m) => '${m[1]}.${m[3]}');
 
     for (String word in preProcessed.split(_rxSpaces)) {
-      // 1. Limpiamos espacios internos para unir fragmentos de precio
       String cleaned = word.replaceAll(' ', '');
-
-      // Si después de quitar espacios está vacío, lo saltamos
       if (cleaned.isEmpty) continue;
 
-      // 2. Aplicar diccionario de caracteres
+      // Apply character corrections (OCR fixes)
       _replacements.forEach((reg, replacement) {
         cleaned = cleaned.replaceAll(reg, replacement);
       });
 
-      // 3. Validar escudo anti-letras
+      // Shield: Reject if it still contains letters (except currency symbols handled by shield)
       if (_rxHasLetters.hasMatch(cleaned.replaceAll(_rxLettersShield, ''))) {
-        // Opcional: print("RECHAZADO por letras: $cleaned");
         continue;
       }
 
-      // 4. Limpieza matemática
+      // Final sanitization to a numeric string with a dot as decimal separator
       String finalNumber = cleaned.replaceAll(_rxCleanMath, '').replaceAll(',', '.');
 
       if (finalNumber.contains('.')) {
-        List<String> parts = finalNumber.split('.');
-        String decimalPart = parts.last;
-        String integerPart = parts.sublist(0, parts.length - 1).join('');
+        final parts = finalNumber.split('.');
+        final decimalPart = parts.last;
+        final integerPart = parts.sublist(0, parts.length - 1).join('');
         finalNumber = '$integerPart.$decimalPart';
       }
 
-      // 5. Validación final y RECHAZO explícito
+      // Final validation against the expected format
       final match = _rxFinalMatch.firstMatch(finalNumber);
-
       if (match != null) {
         return match.group(0);
-      } else {
-        // Aquí es donde "rechazas" el formato que no encaja
-        // print("RECHAZADO por formato final: $finalNumber");
-        continue;
       }
     }
 

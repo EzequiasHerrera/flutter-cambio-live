@@ -14,6 +14,8 @@ class BubbleDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (message.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -23,33 +25,33 @@ class BubbleDialog extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colorScheme.surface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.transparent, width: 0),
-            boxShadow: const [
+            border: Border.all(color: colorScheme.outlineVariant, width: 1),
+            boxShadow: [
               BoxShadow(
-                color: Colors.black12,
+                color: colorScheme.shadow.withOpacity(0.1),
                 blurRadius: 8,
-                offset: Offset(0, 4),
+                offset: const Offset(0, 4),
               ),
             ],
           ),
           child: Text(
             message,
-            style: const TextStyle(
-              color: Colors.black87,
+            style: TextStyle(
+              color: colorScheme.onSurface,
               fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
           ),
         ),
-        _buildTriangle(),
+        _buildTriangle(colorScheme),
       ],
     );
   }
 
-  Widget _buildTriangle() {
+  Widget _buildTriangle(ColorScheme colorScheme) {
     double? left, right, top, bottom;
 
     switch (direction) {
@@ -74,9 +76,9 @@ class BubbleDialog extends StatelessWidget {
       bottom: bottom,
       child: CustomPaint(
         painter: TrianglePainter(
-          strokeColor: Colors.transparent,
-          fillColor: Colors.white,
-          strokeWidth: 0,
+          strokeColor: colorScheme.outlineVariant,
+          fillColor: colorScheme.surface,
+          strokeWidth: 1,
           direction: direction,
         ),
         size: const Size(12, 12),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
-import '../widgets/action_button.dart';
-import '../widgets/currency_icon.dart';
+import 'package:howmuch/providers/app_provider.dart';
+import 'package:howmuch/widgets/action_button.dart';
+import 'package:howmuch/widgets/currency_icon.dart';
 
 class PriceCard extends StatelessWidget {
   final String text;
@@ -61,8 +61,8 @@ class PriceCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       '${provider.baseCurrency?.code} → ${provider.targetCurrency?.code}',
-                      style: const TextStyle(
-                        color: Colors.black87,
+                      style: TextStyle(
+                        color: colorScheme.onTertiaryContainer.withOpacity(0.8),
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -73,14 +73,17 @@ class PriceCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text(
+                    Text(
                       'Precio Original',
-                      style: TextStyle(color: Colors.black54, fontSize: 11),
+                      style: TextStyle(
+                        color: colorScheme.onTertiaryContainer.withOpacity(0.6),
+                        fontSize: 11,
+                      ),
                     ),
                     Text(
                       '${provider.baseCurrency?.code} $text',
-                      style: const TextStyle(
-                        color: Colors.black,
+                      style: TextStyle(
+                        color: colorScheme.onTertiaryContainer,
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
@@ -89,12 +92,15 @@ class PriceCard extends StatelessWidget {
                 ),
               ],
             ),
-            const Divider(color: Colors.black12, height: 25),
+            Divider(
+              color: colorScheme.onTertiaryContainer.withOpacity(0.1),
+              height: 25,
+            ),
             // Precio convertido
             Text(
               '${provider.targetCurrency?.symbol ?? currencyCode} ${formatPrice(convertedValue)}',
-              style: const TextStyle(
-                color: Color(0xFF8C4404),
+              style: TextStyle(
+                color: colorScheme.primary,
                 fontSize: 38,
                 fontWeight: FontWeight.bold,
               ),
@@ -113,6 +119,7 @@ class PriceCard extends StatelessWidget {
 }
 
 String formatPrice(double price) {
-  String s = price.toStringAsFixed(2).replaceAll('.', ',');
-  return s.replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+  final String s = price.toStringAsFixed(2).replaceAll('.', ',');
+  return s.replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
 }

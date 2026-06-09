@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:howmuch/theme/app_theme.dart';
+import 'package:howmuch/services/feedback_service.dart';
 
 class ActionButton extends StatefulWidget {
   final IconData icon;
@@ -65,7 +65,7 @@ class _ActionButtonState extends State<ActionButton> {
   }
 
   void _handlePress() {
-    HapticFeedback.vibrate();
+    FeedbackService.vibrate();
     setState(() => _isPressed = true);
     widget.onPressed();
     Future.delayed(const Duration(milliseconds: 100), () {

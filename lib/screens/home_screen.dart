@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:howmuch/models/currency.dart';
+import 'package:howmuch/providers/app_provider.dart';
 import 'package:howmuch/theme/app_theme.dart';
 import 'package:howmuch/widgets/action_button.dart';
 import 'package:howmuch/widgets/currency_card.dart';
 import 'package:howmuch/widgets/currency_icon.dart';
 import 'package:howmuch/widgets/custom_app_bar.dart';
+import 'package:howmuch/widgets/custom_currency_dialog.dart';
 import 'package:howmuch/widgets/howie.dart';
 import 'package:howmuch/widgets/swap_button.dart';
-import 'package:howmuch/widgets/custom_currency_dialog.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
-import '../models/currency.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -26,273 +26,16 @@ class HomeScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final double unitRate = provider.convert(1.0);
-          final String baseCode = provider.baseCurrency?.code ?? '';
-          final String targetCode = provider.useCustomCurrency
-              ? provider.customName
-              : (provider.targetCurrency?.code ?? '');
-
           return Padding(
             padding: const EdgeInsets.all(20.0),
             child: SingleChildScrollView(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Transform.translate(
-                        offset: const Offset(-25, 0),
-                        child: const SizedBox(
-                          width: 160,
-                          height: 200,
-                          child: Howie(),
-                        ),
-                      ),
-
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '¿Vamos de compras? 🛍️',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Convertí precios en segundos y descubrí cuánto cuestan realmente.',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: colorScheme.outlineVariant.withOpacity(0.5),
-                      ),
-                      boxShadow: [AppTheme.getHardShadow(colorScheme)]
-                    ),
-                    child: Column(
-                      children: [
-                        Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Column(
-                              children: [
-                                CurrencyCard(
-                                  label: 'Desde (Cámara)',
-                                  child: DropdownButtonHideUnderline(
-                                    child: DropdownButton<Currency>(
-                                      isExpanded: true,
-                                      value: provider.baseCurrency,
-                                      borderRadius: BorderRadius.circular(
-                                        AppTheme.radius,
-                                      ),
-                                      items: provider.availableCurrencies.map((
-                                        Currency c,
-                                      ) {
-                                        return DropdownMenuItem<Currency>(
-                                          value: c,
-                                          child: Row(
-                                            children: [
-                                              CurrencyIcon(
-                                                currencyCode: c.code,
-                                              ),
-                                              const SizedBox(width: 10),
-                                              Text(
-                                                '${c.code} - ${c.name}',
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      }).toList(),
-                                      onChanged: (val) =>
-                                          provider.setBaseCurrency(val!),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 15),
-                                CurrencyCard(
-                                  label: 'Hacia (Ver)',
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: provider.useCustomCurrency
-                                            ? Row(
-                                                children: [
-                                                  const Icon(
-                                                    Icons.stars_rounded,
-                                                    color: Colors.orange,
-                                                  ),
-                                                  const SizedBox(width: 10),
-                                                  Text(
-                                                    provider.customName,
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 16,
-                                                      color:
-                                                          colorScheme.primary,
-                                                    ),
-                                                  ),
-                                                ],
-                                              )
-                                            : DropdownButtonHideUnderline(
-                                                child: DropdownButton<Currency>(
-                                                  isExpanded: true,
-                                                  value:
-                                                      provider.targetCurrency,
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                        AppTheme.radius,
-                                                      ),
-                                                  items: provider
-                                                      .availableCurrencies
-                                                      .map((Currency c) {
-                                                        return DropdownMenuItem<
-                                                          Currency
-                                                        >(
-                                                          value: c,
-                                                          child: Row(
-                                                            children: [
-                                                              CurrencyIcon(
-                                                                currencyCode:
-                                                                    c.code,
-                                                              ),
-                                                              const SizedBox(
-                                                                width: 10,
-                                                              ),
-                                                              Text(
-                                                                '${c.code} - ${c.name}',
-                                                                style: const TextStyle(
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        );
-                                                      })
-                                                      .toList(),
-                                                  onChanged: (val) => provider
-                                                      .setTargetCurrency(val!),
-                                                ),
-                                              ),
-                                      ),
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
-                                            icon: Icon(
-                                              Icons.edit_rounded,
-                                              color: provider.useCustomCurrency
-                                                  ? colorScheme.primary
-                                                  : Colors.grey,
-                                            ),
-                                            onPressed: () =>
-                                                CustomCurrencyDialog.show(
-                                                  context,
-                                                ),
-                                          ),
-                                          if (provider.useCustomCurrency)
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.close_rounded,
-                                                color: Colors.redAccent,
-                                              ),
-                                              onPressed: () => provider
-                                                  .disableCustomCurrency(),
-                                            ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const Positioned(child: SwapButton()),
-                          ],
-                        ),
-                        const SizedBox(height: 30),
-
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 15,
-                            horizontal: 20,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colorScheme.tertiaryContainer,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: colorScheme.tertiary.withAlpha(50),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: colorScheme.tertiary,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 10),
-                              Flexible(
-                                child: Text(
-                                  '1 $baseCode = ${unitRate.toStringAsFixed(2)} $targetCode',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: colorScheme.tertiary,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
+                  _buildHeader(),
+                  const SizedBox(height: 20),
+                  _buildConverterCard(context, provider, colorScheme),
                   const SizedBox(height: 40),
-                  ActionButton(
-                    icon: Icons.camera_alt,
-                    label: 'Ir a la Cámara',
-                    onPressed: () => Navigator.pushNamed(context, '/camera'),
-                    isPrimary: true,
-                  ),
-                  const SizedBox(height: 12),
-                  ActionButton(
-                    icon: Icons.calculate_rounded,
-                    label: 'Calculadora',
-                    onPressed: () => Navigator.pushNamed(context, '/calculator'),
-                    isPrimary: false,
-                  ),
-                  const SizedBox(height: 12),
-                  ActionButton(
-                    icon: Icons.shopping_cart,
-                    label: 'Ver Carrito',
-                    onPressed: () => Navigator.pushNamed(context, '/cart'),
-                    isPrimary: false,
-                  ),
+                  _buildActionButtons(context),
                 ],
               ),
             ),
@@ -301,4 +44,259 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildHeader() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Transform.translate(
+          offset: const Offset(-25, 0),
+          child: const SizedBox(
+            width: 160,
+            height: 200,
+            child: Howie(),
+          ),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '¿Vamos de compras? 🛍️',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Convertí precios en segundos y descubrí cuánto cuestan realmente.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConverterCard(
+    BuildContext context,
+    AppProvider provider,
+    ColorScheme colorScheme,
+  ) {
+    final double unitRate = provider.convert(1.0);
+    final String baseCode = provider.baseCurrency?.code ?? '';
+    final String targetCode =
+        provider.useCustomCurrency ? provider.customName : (provider.targetCurrency?.code ?? '');
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withOpacity(0.5),
+          ),
+          boxShadow: [AppTheme.getHardShadow(colorScheme)]),
+      child: Column(
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Column(
+                children: [
+                  _buildCurrencySelector(
+                    label: 'Desde (Cámara)',
+                    value: provider.baseCurrency,
+                    items: provider.availableCurrencies,
+                    onChanged: (val) => provider.setBaseCurrency(val!),
+                  ),
+                  const SizedBox(height: 15),
+                  _buildTargetSelector(context, provider, colorScheme),
+                ],
+              ),
+              const Positioned(child: SwapButton()),
+            ],
+          ),
+          const SizedBox(height: 30),
+          _buildRateInfo(colorScheme, baseCode, unitRate, targetCode),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrencySelector({
+    required String label,
+    required Currency? value,
+    required List<Currency> items,
+    required ValueChanged<Currency?> onChanged,
+  }) {
+    return CurrencyCard(
+      label: label,
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<Currency>(
+          isExpanded: true,
+          value: value,
+          borderRadius: BorderRadius.circular(AppTheme.radius),
+          items: items.map((Currency c) {
+            return DropdownMenuItem<Currency>(
+              value: c,
+              child: Row(
+                children: [
+                  CurrencyIcon(currencyCode: c.code),
+                  const SizedBox(width: 10),
+                  Text(
+                    '${c.code} - ${c.name}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTargetSelector(
+    BuildContext context,
+    AppProvider provider,
+    ColorScheme colorScheme,
+  ) {
+    return CurrencyCard(
+      label: 'Hacia (Ver)',
+      child: Row(
+        children: [
+          Expanded(
+            child: provider.useCustomCurrency
+                ? Row(
+                    children: [
+                      const Icon(Icons.stars_rounded, color: Colors.orange),
+                      const SizedBox(width: 10),
+                      Text(
+                        provider.customName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  )
+                : DropdownButtonHideUnderline(
+                    child: DropdownButton<Currency>(
+                      isExpanded: true,
+                      value: provider.targetCurrency,
+                      borderRadius: BorderRadius.circular(AppTheme.radius),
+                      items: provider.availableCurrencies.map((Currency c) {
+                        return DropdownMenuItem<Currency>(
+                          value: c,
+                          child: Row(
+                            children: [
+                              CurrencyIcon(currencyCode: c.code),
+                              const SizedBox(width: 10),
+                              Text(
+                                '${c.code} - ${c.name}',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) => provider.setTargetCurrency(val!),
+                    ),
+                  ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.edit_rounded,
+                  color: provider.useCustomCurrency ? colorScheme.primary : Colors.grey,
+                ),
+                onPressed: () => CustomCurrencyDialog.show(context),
+              ),
+              if (provider.useCustomCurrency)
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.redAccent),
+                  onPressed: () => provider.disableCustomCurrency(),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRateInfo(
+    ColorScheme colorScheme,
+    String baseCode,
+    double unitRate,
+    String targetCode,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+      decoration: BoxDecoration(
+        color: colorScheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.tertiary.withAlpha(50),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.info_outline, color: colorScheme.tertiary, size: 20),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              '1 $baseCode = ${unitRate.toStringAsFixed(2)} $targetCode',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.tertiary,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context) {
+    return Column(
+      children: [
+        ActionButton(
+          icon: Icons.camera_alt,
+          label: 'Ir a la Cámara',
+          onPressed: () => Navigator.pushNamed(context, '/camera'),
+          isPrimary: true,
+        ),
+        const SizedBox(height: 12),
+        ActionButton(
+          icon: Icons.calculate_rounded,
+          label: 'Calculadora',
+          onPressed: () => Navigator.pushNamed(context, '/calculator'),
+          isPrimary: false,
+        ),
+        const SizedBox(height: 12),
+        ActionButton(
+          icon: Icons.shopping_cart,
+          label: 'Ver Carrito',
+          onPressed: () => Navigator.pushNamed(context, '/cart'),
+          isPrimary: false,
+        ),
+      ],
+    );
+  }
 }
+
