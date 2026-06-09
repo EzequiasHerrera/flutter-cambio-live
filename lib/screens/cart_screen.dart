@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/app_provider.dart';
 import '../models/cart_item.dart';
+import '../widgets/bubble_dialog.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -23,14 +24,14 @@ class CartScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center, // Centrado Vertical
                   crossAxisAlignment: CrossAxisAlignment.center, // Centrado Horizontal
                   children: [
+                    BubbleDialog(
+                      message: 'El carrito está vacío 🛒',
+                      direction: BubbleDirection.bottom,
+                    ),
+                    SizedBox(height: 20),
                     SizedBox(
                       height: 200,
                       child: Howie(),
-                    ),
-                    SizedBox(height: 20),
-                    Text(
-                      'El carrito está vacío 🛒',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.grey),
                     ),
                   ],
                 ),

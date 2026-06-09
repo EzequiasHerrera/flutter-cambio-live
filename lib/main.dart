@@ -4,6 +4,7 @@ import 'providers/app_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/camera_screen.dart';
 import 'screens/cart_screen.dart';
+import 'screens/calculator_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -28,6 +29,7 @@ class MyApp extends StatelessWidget {
           '/': (context) => const HomeScreen(),
           '/camera': (context) => const CameraScreen(),
           '/cart': (context) => const CartScreen(),
+          '/calculator': (context) => const CalculatorScreen(),
         },
       ),
     );

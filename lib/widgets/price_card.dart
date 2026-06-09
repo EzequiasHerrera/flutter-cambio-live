@@ -92,7 +92,7 @@ class PriceCard extends StatelessWidget {
             const Divider(color: Colors.black12, height: 25),
             // Precio convertido
             Text(
-              '$currencyCode ${formatPrice(convertedValue)}', // Aquí aplicas el cambio
+              '${provider.targetCurrency?.symbol ?? currencyCode} ${formatPrice(convertedValue)}',
               style: const TextStyle(
                 color: Color(0xFF8C4404),
                 fontSize: 38,

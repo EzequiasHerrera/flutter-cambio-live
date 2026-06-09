@@ -387,6 +387,7 @@ class _CameraScreenState extends State<CameraScreen>
                           (_isCalculatingManually
                               ? "Escribe el precio que ves"
                               : "¡Hola! Apunta a un precio para empezar"),
+                      direction: BubbleDirection.bottom,
                     );
                   },
                 ),

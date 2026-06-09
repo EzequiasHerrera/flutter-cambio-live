@@ -28,12 +28,12 @@ class AppProvider with ChangeNotifier {
 
   // Lista de monedas disponibles (Sin el parámetro 'rate' que ensucia el modelo)
   final List<Currency> availableCurrencies = [
-    Currency(code: 'USD', name: 'US Dollar'),
-    Currency(code: 'EUR', name: 'Euro'),
-    Currency(code: 'BRL', name: 'Real Brasileiro'),
-    Currency(code: 'ARS', name: 'Peso Argentino'),
-    Currency(code: 'GBP', name: 'British Pound'),
-    Currency(code: 'JPY', name: 'Japanese Yen'),
+    Currency(code: 'USD', name: 'US Dollar', symbol: r'$'),
+    Currency(code: 'EUR', name: 'Euro', symbol: '€'),
+    Currency(code: 'BRL', name: 'Real Brasileiro', symbol: r'R$'),
+    Currency(code: 'ARS', name: 'Peso Argentino', symbol: r'$'),
+    Currency(code: 'GBP', name: 'British Pound', symbol: '£'),
+    Currency(code: 'JPY', name: 'Japanese Yen', symbol: '¥'),
   ];
 
   AppProvider() {
@@ -89,7 +89,7 @@ class AppProvider with ChangeNotifier {
     _customRate = rate;
     _useCustomCurrency = true;
     // IMPORTANTE: El código 'CUSTOM' activa el icono especial en la UI
-    _targetCurrency = Currency(code: 'CUSTOM', name: name);
+    _targetCurrency = Currency(code: 'CUSTOM', name: name, symbol: '');
     notifyListeners();
   }
 

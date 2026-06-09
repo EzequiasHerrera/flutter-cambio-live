@@ -279,7 +279,14 @@ class HomeScreen extends StatelessWidget {
                     onPressed: () => Navigator.pushNamed(context, '/camera'),
                     isPrimary: true,
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 12),
+                  ActionButton(
+                    icon: Icons.calculate_rounded,
+                    label: 'Calculadora',
+                    onPressed: () => Navigator.pushNamed(context, '/calculator'),
+                    isPrimary: false,
+                  ),
+                  const SizedBox(height: 12),
                   ActionButton(
                     icon: Icons.shopping_cart,
                     label: 'Ver Carrito',

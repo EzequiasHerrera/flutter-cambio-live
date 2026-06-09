@@ -1,8 +1,9 @@
 class Currency {
   final String code;
   final String name;
+  final String symbol;
 
-  Currency({required this.code, required this.name});
+  Currency({required this.code, required this.name, this.symbol = ''});
 
   // Centralizamos el mapeo aquí
   String get flagCode {
