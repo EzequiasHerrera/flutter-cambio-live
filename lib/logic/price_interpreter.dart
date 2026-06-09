@@ -5,12 +5,13 @@ import 'package:howmuch/logic/price_complete_analizer.dart';
 import 'package:howmuch/logic/price_groups_logic.dart';
 import 'package:howmuch/logic/price_roi_filter.dart';
 import 'package:howmuch/services/ocr_service.dart';
+import 'package:howmuch/services/feedback_service.dart';
 
 class PriceInterpreter {
   final List<String> _history = [];
   String _stableText = "";
 
-  String? getStablePrice(String newDetection) {
+  String? getStablePrice(String newDetection, FeedbackService? feedback) {
     _history.add(newDetection);
 
     // Historial de 5 lecturas para determinar el ganador
@@ -39,6 +40,9 @@ class PriceInterpreter {
           winner != _stableText &&
           maxCount >= OCRService.requiredMatches) {
         _stableText = winner!;
+      } else if (winner != _stableText) {
+        // FEEDBACK: Se detectó un cambio o una lectura pero aún no es suficiente para cambiar
+        feedback?.updateFeedback("Casi lo tengo... mantén la cámara fija");
       }
     }
 
@@ -52,6 +56,7 @@ class PriceInterpreter {
     required Rect roi, //Rectángulo de interés (ROI)
     required Size screenSize,
     required Size imageSize,
+    FeedbackService? feedback,
   }) {
     // 0. Configuración de geometría (Escalas y Offsets)
     double imgWidth = imageSize.width;
@@ -83,18 +88,36 @@ class PriceInterpreter {
     // 🔥 --- FIN MODO DEBUG RAW INYECTADO --- 🔥
 
     // 1️⃣ PASO 1: Filtrado Espacial
-    List<TextLine> linesInRoi = PriceRoiFilter.filterPricesOnROI(text, roi, scale, offsetX, offsetY,);
+    List<TextLine> linesInRoi = PriceRoiFilter.filterPricesOnROI(
+      text,
+      roi,
+      scale,
+      offsetX,
+      offsetY,
+    );
+
+    if (linesInRoi.isEmpty) {
+      feedback?.updateFeedback("Apunta directamente al precio");
+      return null;
+    }
 
     // 2️⃣ PASO 2: Agrupación de Vecinos
-    List<List<TextLine>> groupedCandidates = PriceGroupsLogic.agruparPrecioPorLider(linesInRoi);
+    List<List<TextLine>> groupedCandidates =
+        PriceGroupsLogic.agruparPrecioPorLider(linesInRoi);
 
     // 3️⃣ PASO 3: Análisis y Extracción del Ganador
-    return PriceCompleteAnalizer.analizarYExtraer(
+    final result = PriceCompleteAnalizer.analizarYExtraer(
       groupedCandidates,
       roi.center,
       scale,
       offsetX,
       offsetY,
     );
+
+    if (result == null) {
+      feedback?.updateFeedback("No reconozco este formato de precio");
+    }
+
+    return result;
   }
 }

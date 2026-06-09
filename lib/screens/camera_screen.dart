@@ -6,9 +6,11 @@ import 'dart:math';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import '../services/camera_service.dart';
+import '../services/feedback_service.dart';
 import '../services/ocr_service.dart';
 import '../logic/price_interpreter.dart';
 import '../widgets/action_button.dart';
+import '../widgets/bubble_dialog.dart';
 import '../widgets/price_card.dart';
 import '../widgets/howie.dart';
 import '../widgets/custom_app_bar.dart';
@@ -45,6 +47,7 @@ class _CameraScreenState extends State<CameraScreen>
   // Controladores para el modo manual
   final TextEditingController _manualPriceController = TextEditingController();
   final FocusNode _manualFocusNode = FocusNode();
+  final FeedbackService _feedbackService = FeedbackService();
   Timer? _debounceTimer;
 
   final double rectWidth = 300;
@@ -56,7 +59,6 @@ class _CameraScreenState extends State<CameraScreen>
     WidgetsBinding.instance.addObserver(this);
     _initializeCamera();
   }
-
   void _initializeCamera() async {
     if (_isInitializing) return;
     _isInitializing = true;
@@ -180,10 +182,11 @@ class _CameraScreenState extends State<CameraScreen>
         roi: roi,
         screenSize: screenSize,
         imageSize: imgSize,
+        feedback: _feedbackService,
       );
       if (rawPrice == null) return;
 
-      final stable = _priceInterpreter.getStablePrice(rawPrice);
+      final stable = _priceInterpreter.getStablePrice(rawPrice, _feedbackService);
       if (stable == null) return;
 
       final provider = Provider.of<AppProvider>(context, listen: false);
@@ -197,6 +200,7 @@ class _CameraScreenState extends State<CameraScreen>
           _val = val;
           _conv = provider.convert(val);
         });
+        _feedbackService.clear();
       }
     } catch (e) {
       debugPrint("Error en _onFrame: $e");
@@ -329,6 +333,7 @@ class _CameraScreenState extends State<CameraScreen>
                     _tusDeteccionesDelFrame = [];
                     _manualPriceController.clear();
                     _manualFocusNode.requestFocus();
+                    _feedbackService.clear();
                   } else {
                     _manualFocusNode.unfocus();
                   }
@@ -370,11 +375,27 @@ class _CameraScreenState extends State<CameraScreen>
           // Animación de Howie reaccionando al precio
           Positioned(
             bottom: (_val != null ? 190 : 40) + keyboardHeight,
-            left: 0,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              height: 200,
-              child: const Howie(),
+            left: 20, // Ajusta según la posición de Howie
+            right: 20,
+            child: Column(
+              children: [
+                ListenableBuilder(
+                  listenable: _feedbackService,
+                  builder: (context, child) {
+                    return BubbleDialog(
+                      message: _feedbackService.message ??
+                          (_isCalculatingManually
+                              ? "Escribe el precio que ves"
+                              : "¡Hola! Apunta a un precio para empezar"),
+                    );
+                  },
+                ),
+                const SizedBox(height: 10), // Espacio entre globo y Howie
+                SizedBox(
+                  height: 200,
+                  child: const Howie(),
+                ),
+              ],
             ),
           ),
 
