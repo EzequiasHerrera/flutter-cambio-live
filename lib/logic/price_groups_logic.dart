@@ -1,88 +1,69 @@
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 class PriceGroupsLogic {
+  // Regular Expressions for price detection and cleaning
+  static final RegExp _rxHasNumbers = RegExp(r'[0-9]');
+  static final RegExp _rxLettersAndNoise = RegExp(r'[^0-9.,]');
+  static final RegExp _rxOnlyDigits = RegExp(r'[^0-9]');
+  static final RegExp _rxPerfectFormat = RegExp(r'^(\d{1,3}([.,]\d{3})*)[.,]\d{2}$');
 
-  // 🔥 Las RegExp optimizadas que agregamos en el paso anterior
-  static final RegExp _rxTieneNumeros = RegExp(r'[0-9]');
-  static final RegExp _rxLetrasYBasura = RegExp(r'[^0-9.,]');
-  static final RegExp _rxSoloDigitos = RegExp(r'[^0-9]');
-  static final RegExp _rxNativoPerfecto = RegExp(r'^(\d{1,3}([.,]\d{3})*)[.,]\d{2}$');
+  /// Groups detected text lines into potential price candidates based on spatial proximity
+  /// and common price fragmentation patterns.
+  static List<List<TextLine>> groupPricesByLeader(List<TextLine> linesInRoi) {
+    // 1. Filter out lines that don't contain numbers
+    final numericLines = _filterNumericLines(linesInRoi);
+    if (numericLines.isEmpty) return [];
 
-  // =====================================================================
-  // 🚀 METODO PRINCIPAL (Ahora es un esquema limpio y fácil de leer)
-  // =====================================================================
-  static List<List<TextLine>> agruparPrecioPorLider(List<TextLine> linesInRoi) {
-    print("========== PASO 2: INICIANDO ANÁLISIS DE CANDIDATOS ==========");
+    // 2. Apply grouping strategies
+    final candidates = _processStrategies(numericLines);
 
-    // 1. Descartar basura de todo lo leído en el ROI
-    final digitLines = _filtrarNumeros(linesInRoi);
-    if (digitLines.isEmpty) {
-      print("❌ PASO 2: No hay líneas numéricas en el visor. Abortando frame.");
-      return [];
+    // 3. Rank candidates (native format and font size)
+    return _rankCandidates(candidates);
+  }
+
+  // --- Private Strategies ---
+
+  static List<List<TextLine>> _processStrategies(List<TextLine> numericLines) {
+    final List<List<TextLine>> lot = [];
+
+    for (final TextLine baseLine in numericLines) {
+      final String originalText = baseLine.text;
+      final String cleanText = originalText.replaceAll(_rxLettersAndNoise, '');
+      final String pureDigits = originalText.replaceAll(_rxOnlyDigits, '');
+
+      // Case A: Already in a perfect price format (e.g., "12.90")
+      if (_evaluatePerfectFormat(cleanText, baseLine, lot)) continue;
+
+      // Case B: Pure digits that look like they need splitting (e.g., "100099" -> "1000.99")
+      if (_evaluateFracture(pureDigits, baseLine, lot)) continue;
+
+      // Case C: Look for nearby cent decimals (Case "99" near "10")
+      _evaluateProximity(baseLine, numericLines, lot);
     }
 
-    // 2. Procesar lógica de unión/fractura
-    final loteDeCandidatos = _procesarEstrategias(digitLines);
-
-    // 3. Ordenar a los mejores
-    return _ordenarRankingFinal(loteDeCandidatos);
+    return lot;
   }
 
-  // =====================================================================
-  // 🛠️ METODOS PRIVADOS (Los sub-departamentos)
-  // =====================================================================
-
-  //TODO: Centralizar guardado en el lote dentro de la función principal AQUI
-  static List<List<TextLine>> _procesarEstrategias(List<TextLine> digitLines) {
-    final List<List<TextLine>> lote = [];
-
-    for (TextLine baseLine in digitLines) {
-      final String textoOriginal = baseLine.text;
-      final String textoLimpio = textoOriginal.replaceAll(_rxLetrasYBasura, '');
-      final String digitosPuros = textoOriginal.replaceAll(_rxSoloDigitos, '');
-
-      print("\n🔍 EVALUANDO LÍNEA: '$textoOriginal'");
-
-      // Probamos el Caso A (si entra, pasa a la siguiente línea) 12,90 - 3,50 - 100,99
-      if (_evaluarCasoA(textoLimpio, baseLine, lote)) continue;
-
-      // Probamos el Caso B (si entra, pasa a la siguiente línea) 100099 asume que es 1000,99 LO FRACTURA
-      if (_evaluarCasoB(digitosPuros, baseLine, lote)) continue;
-
-      // Si no fue A ni B, probamos el Caso C
-      _evaluarCasoC(baseLine, digitLines, lote);
-    }
-
-    return lote;
+  static List<TextLine> _filterNumericLines(List<TextLine> lines) {
+    return lines.where((line) => _rxHasNumbers.hasMatch(line.text)).toList();
   }
 
-  //👁️ FILTRA TEXTO SIN NÚMEROS
-  static List<TextLine> _filtrarNumeros(List<TextLine> lines) {
-    return lines.where((line) => _rxTieneNumeros.hasMatch(line.text)).toList();
-  }
-
-  //✅ FORMATO PERFECTO
-  static bool _evaluarCasoA(String textoLimpio, TextLine baseLine, List<List<TextLine>> lote) {
-    if (_rxNativoPerfecto.hasMatch(textoLimpio)) {
-      // Normalización interna: estandarizamos el separador decimal a punto
-      print("   ✅ FORMATO PERFECTO: $textoLimpio");
-      lote.add([baseLine]);
+  static bool _evaluatePerfectFormat(String cleanText, TextLine baseLine, List<List<TextLine>> lot) {
+    if (_rxPerfectFormat.hasMatch(cleanText)) {
+      lot.add([baseLine]);
       return true;
     }
     return false;
   }
 
-  //🦴 FRACTURA TODO: ACÁ VOY A TENER QUE REVISAR Y VERIFICAR SI ES UN NÚMERO ENTERO O SE TRATA DE UNA FRACCIÓN (ANALIZO CARACTER POR CARACTER)
-  static bool _evaluarCasoB(String digitosPuros, TextLine baseLine, List<List<TextLine>> lote) {
-    if (digitosPuros.length >= 3) {
-      final String parteCentavo = digitosPuros.substring(digitosPuros.length - 2);
-      if (parteCentavo != "00") {
-        final String parteEntera = digitosPuros.substring(0, digitosPuros.length - 2);
-        print("   🛠️ FRACTURA: Separando virtualmente en Entero ['$parteEntera'] y Centavos ['$parteCentavo'].");
-
-        lote.add([
-          _clonarLineaConNuevoTexto(baseLine, parteEntera),
-          _clonarLineaConNuevoTexto(baseLine, parteCentavo)
+  static bool _evaluateFracture(String pureDigits, TextLine baseLine, List<List<TextLine>> lot) {
+    if (pureDigits.length >= 3) {
+      final String cents = pureDigits.substring(pureDigits.length - 2);
+      if (cents != "00") {
+        final String integerPart = pureDigits.substring(0, pureDigits.length - 2);
+        lot.add([
+          _cloneLineWithText(baseLine, integerPart),
+          _cloneLineWithText(baseLine, cents),
         ]);
         return true;
       }
@@ -90,50 +71,44 @@ class PriceGroupsLogic {
     return false;
   }
 
-  //🧬 UNIÓN
-  static void _evaluarCasoC(TextLine baseLine, List<TextLine> digitLines, List<List<TextLine>> lote) {
-    final List<TextLine> vecinos = digitLines.where((candidate) {
+  static void _evaluateProximity(TextLine baseLine, List<TextLine> numericLines, List<List<TextLine>> lot) {
+    final List<TextLine> neighbors = numericLines.where((candidate) {
       if (candidate == baseLine) return false;
 
-      final candDigitos = candidate.text.replaceAll(_rxSoloDigitos, '');
-      if (candDigitos.length != 2) return false;
+      final candDigits = candidate.text.replaceAll(_rxOnlyDigits, '');
+      if (candDigits.length != 2) return false;
 
-      // 🔥 SOLUCIÓN DIAGONAL: Calculamos los centros horizontales
+      // Calculate horizontal centers
       final double baseCenterX = (baseLine.boundingBox.left + baseLine.boundingBox.right) / 2;
       final double candCenterX = (candidate.boundingBox.left + candidate.boundingBox.right) / 2;
 
-      // Ahora comparamos los centros en lugar de los bordes
-      final bool aLaDerecha = candCenterX > baseCenterX;
+      final bool isToTheRight = candCenterX > baseCenterX;
 
-      // Ampliamos el margen de tolerancia vertical al 50% para textos inclinados
-      final double margen = baseLine.boundingBox.height * 0.5;
-      final bool rangoVertical =
-          candidate.boundingBox.top >= (baseLine.boundingBox.top - margen) &&
-              candidate.boundingBox.bottom <= (baseLine.boundingBox.bottom + margen);
+      // Vertical tolerance (50% of height) for tilted text
+      final double margin = baseLine.boundingBox.height * 0.5;
+      final bool inVerticalRange =
+          candidate.boundingBox.top >= (baseLine.boundingBox.top - margin) &&
+              candidate.boundingBox.bottom <= (baseLine.boundingBox.bottom + margin);
 
-      return aLaDerecha && rangoVertical;
+      return isToTheRight && inVerticalRange;
     }).toList();
 
-    if (vecinos.isNotEmpty) {
-      // Ordenamos de izquierda a derecha basándonos en sus centros
-      vecinos.sort((a, b) {
+    if (neighbors.isNotEmpty) {
+      neighbors.sort((a, b) {
         final centerA = (a.boundingBox.left + a.boundingBox.right) / 2;
         final centerB = (b.boundingBox.left + b.boundingBox.right) / 2;
         return centerA.compareTo(centerB);
       });
 
-      print("   🔗 VECINOS: Se unió '${baseLine.text}' con el centavo '${vecinos.first.text}'.");
-      lote.add([baseLine, vecinos.first]);
+      lot.add([baseLine, neighbors.first]);
     } else {
-      print("   ❓ SOLITARIA: Sin separador, ni absorción, ni vecinos. Se envía a la suerte.");
-      lote.add([baseLine]);
+      lot.add([baseLine]);
     }
   }
 
-  // Helper para acortar el código visualmente al partir líneas
-  static TextLine _clonarLineaConNuevoTexto(TextLine original, String nuevoTexto) {
+  static TextLine _cloneLineWithText(TextLine original, String newText) {
     return TextLine(
-      text: nuevoTexto,
+      text: newText,
       boundingBox: original.boundingBox,
       elements: original.elements,
       cornerPoints: original.cornerPoints,
@@ -143,22 +118,22 @@ class PriceGroupsLogic {
     );
   }
 
-  static List<List<TextLine>> _ordenarRankingFinal(List<List<TextLine>> loteDeCandidatos) {
-    loteDeCandidatos.sort((a, b) {
-      final textA = a.map((e) => e.text).join(' ').replaceAll(_rxLetrasYBasura, '');
-      final textB = b.map((e) => e.text).join(' ').replaceAll(_rxLetrasYBasura, '');
+  static List<List<TextLine>> _rankCandidates(List<List<TextLine>> candidates) {
+    candidates.sort((a, b) {
+      final textA = a.map((e) => e.text).join(' ').replaceAll(_rxLettersAndNoise, '');
+      final textB = b.map((e) => e.text).join(' ').replaceAll(_rxLettersAndNoise, '');
 
-      final bool nativoA = _rxNativoPerfecto.hasMatch(textA) && a.length == 1;
-      final bool nativoB = _rxNativoPerfecto.hasMatch(textB) && b.length == 1;
+      final bool isPerfectA = _rxPerfectFormat.hasMatch(textA) && a.length == 1;
+      final bool isPerfectB = _rxPerfectFormat.hasMatch(textB) && b.length == 1;
 
-      // Prioridad 1: Formato Nativo
-      if (nativoA && !nativoB) return -1;
-      if (!nativoA && nativoB) return 1;
+      // Priority 1: Perfect format
+      if (isPerfectA && !isPerfectB) return -1;
+      if (!isPerfectA && isPerfectB) return 1;
 
-      // Prioridad 2: Tamaño de fuente (el más grande suele ser el precio real)
+      // Priority 2: Largest font size
       return b.first.boundingBox.height.compareTo(a.first.boundingBox.height);
     });
 
-    return loteDeCandidatos;
+    return candidates;
   }
 }

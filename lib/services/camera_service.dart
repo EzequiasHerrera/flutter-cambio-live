@@ -8,73 +8,80 @@ class CameraService {
   CameraController? controller;
   bool isInitialized = false;
 
-  // Compuerta lógica para controlar los FPS y evitar saturación de memoria
+  /// Flag to prevent concurrent frame processing.
   bool _isProcessingFrame = false;
 
+  /// Initializes the camera and starts the image stream.
+  /// [onInputImage] is called for each processed frame.
   Future<void> initialize(void Function(InputImage) onInputImage) async {
-    final cameras = await availableCameras();
-    if (cameras.isEmpty) return;
-
-    controller = CameraController(
-      cameras.first,
-      ResolutionPreset.high,
-      enableAudio: false,
-      imageFormatGroup: Platform.isAndroid
-          ? ImageFormatGroup.yuv420
-          : ImageFormatGroup.bgra8888,
-    );
-
     try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        debugPrint("No cameras found.");
+        return;
+      }
+
+      controller = CameraController(
+        cameras.first,
+        ResolutionPreset.high,
+        enableAudio: false,
+        imageFormatGroup: Platform.isAndroid
+            ? ImageFormatGroup.yuv420
+            : ImageFormatGroup.bgra8888,
+      );
+
       await controller!.initialize();
 
+      // Try to enable autofocus if supported
       try {
         await controller!.setFocusMode(FocusMode.auto);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint("Autofocus not supported: $e");
+      }
 
-      await controller!.startImageStream((CameraImage image) async {
-        // Si el pipeline sigue ocupado con el frame anterior, se descarta el actual
+      await controller!.startImageStream((CameraImage image) {
         if (_isProcessingFrame) return;
 
+        _isProcessingFrame = true;
         try {
-          _isProcessingFrame = true; // Cierra la compuerta
-
           final inputImage = _inputImageFromCameraImage(image);
           if (inputImage != null) {
-            //------💡LLAMAMOS A onFrame------💡
             onInputImage(inputImage);
           }
         } catch (e) {
-          debugPrint("Error procesando frame en stream: $e");
+          debugPrint("Error processing frame: $e");
         } finally {
-          _isProcessingFrame =
-              false; // Abre la compuerta para el siguiente frame disponible
+          _isProcessingFrame = false;
         }
       });
 
       isInitialized = true;
     } catch (e) {
-      debugPrint("Error cámara: $e");
+      debugPrint("Error initializing camera: $e");
+      isInitialized = false;
     }
   }
 
+  /// Stops the stream and disposes of the controller.
   Future<void> dispose() async {
     if (controller != null) {
       if (isInitialized) {
         await controller!.stopImageStream();
       }
       await controller!.dispose();
-      controller = null; // IMPORTANTE: Anular para evitar errores de referencia
+      controller = null;
     }
     isInitialized = false;
     _isProcessingFrame = false;
   }
 
+  /// Converts a [CameraImage] to an [InputImage] compatible with ML Kit.
   InputImage? _inputImageFromCameraImage(CameraImage image) {
     if (controller == null) return null;
+
     try {
       final camera = controller!.description;
-      final rotation =
-          InputImageRotationValue.fromRawValue(camera.sensorOrientation) ??
+      final rotation = InputImageRotationValue.fromRawValue(camera.sensorOrientation) ??
           InputImageRotation.rotation90deg;
 
       final plane = image.planes[0];
@@ -83,26 +90,20 @@ class CameraService {
       final height = image.height;
       final bytesPerRow = plane.bytesPerRow;
 
-      // Asignación exacta del plano de luminancia Y sin el padding de memoria
+      // Extract clean Y plane (Luminance) removing memory padding
       final Uint8List cleanYPlane = Uint8List(width * height);
-
       for (int y = 0; y < height; y++) {
-        // Sincroniza el inicio de la fila en memoria considerando el bytesPerRow real
-        final int sourceStart = y * bytesPerRow;
-        final int targetStart = y * width;
-
-        // Copia únicamente los bytes útiles (width), ignorando los bytes de padding
         cleanYPlane.setRange(
-          targetStart,
-          targetStart + width,
-          bytes.getRange(sourceStart, sourceStart + width),
+          y * width,
+          y * width + width,
+          bytes.getRange(y * bytesPerRow, y * bytesPerRow + width),
         );
       }
 
-      // Construcción del plano NV21 estándar para ML Kit
+      // Construct NV21 bytes (Y + dummy UV)
       final Uint8List nv21Bytes = Uint8List(width * height * 3 ~/ 2);
       nv21Bytes.setRange(0, width * height, cleanYPlane);
-      nv21Bytes.fillRange(width * height, nv21Bytes.length, 128);
+      nv21Bytes.fillRange(width * height, nv21Bytes.length, 128); // Neutral chrominance
 
       return InputImage.fromBytes(
         bytes: nv21Bytes,
@@ -114,7 +115,9 @@ class CameraService {
         ),
       );
     } catch (e) {
+      debugPrint("Conversion error: $e");
       return null;
     }
   }
 }
+

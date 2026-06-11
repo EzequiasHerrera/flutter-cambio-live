@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart'; // Importamos el tema
+import 'package:howmuch/theme/app_theme.dart';
 
 class CurrencyCard extends StatelessWidget {
   final String label;
@@ -27,7 +27,14 @@ class CurrencyCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: colorScheme.onSurfaceVariant.withOpacity(0.6),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           child,
         ],
       ),

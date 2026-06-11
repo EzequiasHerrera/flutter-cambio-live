@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
-import 'action_button.dart';
+import 'package:howmuch/providers/app_provider.dart';
+import 'package:howmuch/widgets/action_button.dart';
 
 class CustomCurrencyDialog extends StatefulWidget {
   const CustomCurrencyDialog({super.key});

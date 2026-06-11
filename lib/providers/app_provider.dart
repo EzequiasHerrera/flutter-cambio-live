@@ -4,18 +4,39 @@ import '../models/cart_item.dart';
 import '../services/currency_service.dart';
 
 class AppProvider with ChangeNotifier {
+  // Services
   final CurrencyService _currencyService = CurrencyService();
 
+  // State: Currencies
   Currency? _baseCurrency;
   Currency? _targetCurrency;
   Map<String, double> _rates = {};
   bool _isLoading = false;
-  final List<CartItem> _cart = [];
 
-  // MONEDA PERSONALIZADA
+  // State: Custom Currency
   bool _useCustomCurrency = false;
   String _customName = "Personalizada";
   double _customRate = 1.0;
+
+  // State: Cart
+  final List<CartItem> _cart = [];
+
+  // Data: Available Currencies
+  final List<Currency> availableCurrencies = [
+    Currency(code: 'USD', name: 'US Dollar', symbol: r'$'),
+    Currency(code: 'EUR', name: 'Euro', symbol: '€'),
+    Currency(code: 'BRL', name: 'Real Brasileiro', symbol: r'R$'),
+    Currency(code: 'ARS', name: 'Peso Argentino', symbol: r'$'),
+    Currency(code: 'GBP', name: 'British Pound', symbol: '£'),
+    Currency(code: 'JPY', name: 'Japanese Yen', symbol: '¥'),
+  ];
+
+  // Constructor
+  AppProvider() {
+    _baseCurrency = availableCurrencies.firstWhere((c) => c.code == 'USD');
+    _targetCurrency = availableCurrencies.firstWhere((c) => c.code == 'ARS');
+    fetchRates();
+  }
 
   // Getters
   Currency? get baseCurrency => _baseCurrency;
@@ -26,24 +47,7 @@ class AppProvider with ChangeNotifier {
   String get customName => _customName;
   double get customRate => _customRate;
 
-  // Lista de monedas disponibles (Sin el parámetro 'rate' que ensucia el modelo)
-  final List<Currency> availableCurrencies = [
-    Currency(code: 'USD', name: 'US Dollar', symbol: r'$'),
-    Currency(code: 'EUR', name: 'Euro', symbol: '€'),
-    Currency(code: 'BRL', name: 'Real Brasileiro', symbol: r'R$'),
-    Currency(code: 'ARS', name: 'Peso Argentino', symbol: r'$'),
-    Currency(code: 'GBP', name: 'British Pound', symbol: '£'),
-    Currency(code: 'JPY', name: 'Japanese Yen', symbol: '¥'),
-  ];
-
-  AppProvider() {
-    // Inicialización por defecto
-    _baseCurrency = availableCurrencies.firstWhere((c) => c.code == 'USD');
-    _targetCurrency = availableCurrencies.firstWhere((c) => c.code == 'ARS');
-    fetchRates();
-  }
-
-  // Lógica de cálculo del total en el carrito
+  // Logic: Calculations
   double get totalSaved {
     if (_targetCurrency == null || (_rates.isEmpty && !_useCustomCurrency)) return 0.0;
 
@@ -52,14 +56,12 @@ class AppProvider with ChangeNotifier {
       if (_useCustomCurrency) {
         total += item.originalAmount * _customRate;
       } else {
-        // Obtenemos la tasa de la moneda del item respecto a la base actual
         double rateToTarget = _rates[_targetCurrency!.code] ?? 1.0;
         double rateToOriginal = _rates[item.originalCurrency.code] ?? 1.0;
 
         if (item.originalCurrency.code == _baseCurrency?.code) {
           total += convert(item.originalAmount);
         } else {
-          // Ajuste de tasas cruzadas
           total += item.originalAmount * (rateToTarget / rateToOriginal);
         }
       }
@@ -67,15 +69,13 @@ class AppProvider with ChangeNotifier {
     return total;
   }
 
-  // CAMBIAR MONEDA BASE
+  // Public Methods: Currency Management
   void setBaseCurrency(Currency currency) {
     _baseCurrency = currency;
-    // Si no estamos en modo personalizado, actualizamos tasas desde la API
     if (!_useCustomCurrency) fetchRates();
     notifyListeners();
   }
 
-  // CAMBIAR MONEDA DESTINO (De la lista oficial)
   void setTargetCurrency(Currency currency) {
     _useCustomCurrency = false;
     _targetCurrency = currency;
@@ -83,19 +83,26 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // CONFIGURAR MONEDA PERSONALIZADA
   void setCustomCurrency(String name, double rate) {
     _customName = name;
     _customRate = rate;
     _useCustomCurrency = true;
-    // IMPORTANTE: El código 'CUSTOM' activa el icono especial en la UI
     _targetCurrency = Currency(code: 'CUSTOM', name: name, symbol: '');
     notifyListeners();
   }
 
-  // INTERCAMBIAR MONEDAS
+  void disableCustomCurrency() {
+    _useCustomCurrency = false;
+    _targetCurrency = availableCurrencies.firstWhere(
+      (c) => c.code != _baseCurrency?.code,
+      orElse: () => availableCurrencies.first,
+    );
+    fetchRates();
+    notifyListeners();
+  }
+
   void swapCurrencies() {
-    if (_useCustomCurrency) return; // No se puede swap si una es manual
+    if (_useCustomCurrency) return;
     if (_baseCurrency == null || _targetCurrency == null) return;
 
     final temp = _baseCurrency;
@@ -106,7 +113,7 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // OBTENER TASAS DESDE EL SERVICIO
+  // Public Methods: Rates
   Future<void> fetchRates() async {
     if (_baseCurrency == null || _useCustomCurrency) return;
 
@@ -123,7 +130,6 @@ class AppProvider with ChangeNotifier {
     }
   }
 
-  // CONVERTIR MONTO
   double convert(double amount) {
     if (_useCustomCurrency) {
       return amount * _customRate;
@@ -134,19 +140,7 @@ class AppProvider with ChangeNotifier {
     return amount * rate;
   }
 
-  // DESACTIVAR MONEDA PERSONALIZADA
-  void disableCustomCurrency() {
-    _useCustomCurrency = false;
-    // Volvemos a la primera moneda disponible que no sea la base
-    _targetCurrency = availableCurrencies.firstWhere(
-      (c) => c.code != _baseCurrency?.code,
-      orElse: () => availableCurrencies.first
-    );
-    fetchRates();
-    notifyListeners();
-  }
-
-  // AGREGAR AL CARRITO
+  // Public Methods: Cart Management
   void addToCart(double original, double converted) {
     if (_baseCurrency == null || _targetCurrency == null) return;
 
@@ -160,7 +154,6 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // LIMPIAR CARRITO
   void clearCart() {
     _cart.clear();
     notifyListeners();

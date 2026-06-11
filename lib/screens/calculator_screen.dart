@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
-import '../widgets/action_button.dart';
-import '../widgets/bubble_dialog.dart';
-import '../widgets/howie.dart';
-import '../widgets/custom_app_bar.dart';
-import '../widgets/price_card.dart';
+import 'package:howmuch/providers/app_provider.dart';
+import 'package:howmuch/widgets/action_button.dart';
+import 'package:howmuch/widgets/bubble_dialog.dart';
+import 'package:howmuch/widgets/howie.dart';
+import 'package:howmuch/widgets/custom_app_bar.dart';
+import 'package:howmuch/widgets/price_card.dart';
 
 class CalculatorScreen extends StatefulWidget {
   const CalculatorScreen({super.key});
@@ -105,15 +105,15 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: colorScheme.primary.withOpacity(0.1),
-                        width: 2,
+                        color: colorScheme.outlineVariant,
+                        width: 1,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: colorScheme.primary.withOpacity(0.05),
+                          color: colorScheme.shadow.withOpacity(0.05),
                           blurRadius: 15,
                           offset: const Offset(0, 8),
                         ),

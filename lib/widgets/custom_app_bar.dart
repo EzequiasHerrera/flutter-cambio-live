@@ -33,22 +33,25 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           ? Padding(
         padding: const EdgeInsets.all(8.0),
         child: CircleAvatar(
-          backgroundColor: Colors.black.withOpacity(0.2), // Fondo sutil para ver el ícono sobre la cámara
+          backgroundColor: Colors.black.withOpacity(0.2),
           child: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-            color: Colors.white, // Blanco resalta mejor sobre video
+            color: Colors.white,
             onPressed: () => Navigator.maybePop(context),
           ),
         ),
       )
           : null,
 
-      // 3. Título (Logo) envuelto en un Container para asegurar que no se corte
       title: Container(
         constraints: const BoxConstraints(maxHeight: 40),
         child: SvgPicture.asset(
           'assets/icon/ic_howmuch.svg',
-          fit: BoxFit.contain, // 👈 Evita que se corte
+          fit: BoxFit.contain,
+          colorFilter: ColorFilter.mode(
+            colorScheme.primary,
+            BlendMode.srcIn,
+          ),
           placeholderBuilder: (_) => Text(
             'Howmuch',
             style: TextStyle(
