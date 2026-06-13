@@ -1,8 +1,10 @@
 class PriceClean {
+  // Regex patterns for assembling fragmented prices
   static final RegExp _rxAssemble1 = RegExp(r'(\d+)\s*[.,]?\s+(\d{1,2})\b');
   static final RegExp _rxAssemble2 = RegExp(r'(\d+)\s+([.,])\s*(\d{1,2})');
   static final RegExp _rxSpaces = RegExp(r'\s+');
 
+  // OCR correction mapping
   static final Map<RegExp, String> _replacements = {
     RegExp(r'[oO]'): '0',
     RegExp(r'[iIlL]'): '1',
@@ -18,7 +20,9 @@ class PriceClean {
   static final RegExp _rxDecimalMatch = RegExp(r'^(0|[1-9]\d*)\.\d{1,2}$');
   static final RegExp _rxIntegerMatch = RegExp(r'^(0|[1-9]\d*)$');
 
+  /// Cleans raw OCR text and attempts to extract a valid price format (e.g., 123.45).
   static String? cleanAndExtractPrice(String rawText, {bool ignoreDecimals = false}) {
+    // Pre-process common fragmentation patterns
     String preProcessed = rawText
         .replaceAllMapped(_rxAssemble1, (m) => '${m[1]}.${m[2]}')
         .replaceAllMapped(_rxAssemble2, (m) => '${m[1]}.${m[3]}');
@@ -27,16 +31,20 @@ class PriceClean {
       String cleaned = word.replaceAll(' ', '');
       if (cleaned.isEmpty) continue;
 
+      // Apply character corrections (OCR fixes)
       _replacements.forEach((reg, replacement) {
         cleaned = cleaned.replaceAll(reg, replacement);
       });
 
+      // Shield: Reject if it still contains letters (except currency symbols handled by shield)
       if (_rxHasLetters.hasMatch(cleaned.replaceAll(_rxLettersShield, ''))) {
         continue;
       }
 
+      // Final sanitization to a numeric string with a dot as decimal separator
       String finalNumber = cleaned.replaceAll(_rxCleanMath, '').replaceAll(',', '.');
 
+      // Final validation against the expected format
       if (finalNumber.contains('.')) {
         final parts = finalNumber.split('.');
         final decimalPart = parts.last;
