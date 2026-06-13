@@ -21,6 +21,7 @@ class PriceInterpreter {
     required Size screenSize,
     required Size imageSize,
     FeedbackService? feedback,
+    bool ignoreDecimals = false,
   }) {
     // 1. Geometry Setup
     double imgWidth = imageSize.width;
@@ -64,6 +65,7 @@ class PriceInterpreter {
       scale,
       offsetX,
       offsetY,
+      ignoreDecimals: ignoreDecimals,
     );
 
     if (result == null) {
@@ -106,6 +108,12 @@ class PriceInterpreter {
     }
 
     return _stableText.isEmpty ? null : _stableText;
+  }
+
+  /// Clears the detection history and stable text.
+  void reset() {
+    _history.clear();
+    _stableText = "";
   }
 }
 

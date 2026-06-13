@@ -12,14 +12,18 @@ class PriceCompleteAnalyzer {
     Offset roiCenter,
     double scale,
     double offsetX,
-    double offsetY,
-  ) {
+    double offsetY, {
+    bool ignoreDecimals = false,
+  }) {
     String? bestPrice;
     double minDistance = double.infinity;
 
     for (final List<TextLine> row in groupedCandidates) {
       final String combinedText = row.map((e) => e.text).join(' ');
-      final String? price = PriceClean.cleanAndExtractPrice(combinedText);
+      final String? price = PriceClean.cleanAndExtractPrice(
+        combinedText,
+        ignoreDecimals: ignoreDecimals,
+      );
 
       if (price != null) {
         final Offset centerInScreen = _calculateCenterOnScreen(row, scale, offsetX, offsetY);
