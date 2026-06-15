@@ -50,6 +50,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   bool _isCalculatingManually = false;
   Timer? _debounceTimer;
 
+  // State: No Decimals Mode
+  bool _isIgnoringDecimals = false;
+
   // State: Debug Overlay
   bool _showDebugOverlay = false;
   List<({String text, Rect rect})> _frameDetections = [];
@@ -146,6 +149,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
         screenSize: screenSize,
         imageSize: imgSize,
         feedback: _feedbackService,
+        ignoreDecimals: _isIgnoringDecimals,
       );
 
       if (rawPrice == null) return;
@@ -230,6 +234,18 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       } else {
         _manualFocusNode.unfocus();
       }
+    });
+  }
+
+  // --- No Decimals Mode ---
+  void _toggleIgnoreDecimalsMode() {
+    setState(() {
+      _isIgnoringDecimals = !_isIgnoringDecimals;
+      _priceInterpreter.reset();
+      _originalValue = null;
+      _convertedValue = null;
+      _detectedText = "";
+      _feedbackService.clear();
     });
   }
 
@@ -343,6 +359,12 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
             icon: _isCalculatingManually ? Icons.calculate : Icons.calculate_outlined,
             onPressed: _toggleManualMode,
           ),
+          const SizedBox(height: 15),
+          ActionButton(
+            width: 55,
+            icon: _isIgnoringDecimals ? Icons.onetwothree : Icons.onetwothree_outlined,
+            onPressed: _toggleIgnoreDecimalsMode,
+          )
         ],
       ),
     );

@@ -17,10 +17,11 @@ class PriceClean {
   static final RegExp _rxLettersShield = RegExp(r'[\$R.,]');
   static final RegExp _rxHasLetters = RegExp(r'[a-zA-Z]');
   static final RegExp _rxCleanMath = RegExp(r'[^\d.,]');
-  static final RegExp _rxFinalMatch = RegExp(r'^(0|[1-9]\d*)\.\d{1,2}$');
+  static final RegExp _rxDecimalMatch = RegExp(r'^(0|[1-9]\d*)\.\d{1,2}$');
+  static final RegExp _rxIntegerMatch = RegExp(r'^(0|[1-9]\d*)$');
 
   /// Cleans raw OCR text and attempts to extract a valid price format (e.g., 123.45).
-  static String? cleanAndExtractPrice(String rawText) {
+  static String? cleanAndExtractPrice(String rawText, {bool ignoreDecimals = false}) {
     // Pre-process common fragmentation patterns
     String preProcessed = rawText
         .replaceAllMapped(_rxAssemble1, (m) => '${m[1]}.${m[2]}')
@@ -43,20 +44,26 @@ class PriceClean {
       // Final sanitization to a numeric string with a dot as decimal separator
       String finalNumber = cleaned.replaceAll(_rxCleanMath, '').replaceAll(',', '.');
 
+      // Final validation against the expected format
       if (finalNumber.contains('.')) {
         final parts = finalNumber.split('.');
         final decimalPart = parts.last;
         final integerPart = parts.sublist(0, parts.length - 1).join('');
-        finalNumber = '$integerPart.$decimalPart';
+
+        if (ignoreDecimals) {
+          finalNumber = decimalPart.length <= 2 ? integerPart : integerPart + decimalPart;
+        } else {
+          finalNumber = '$integerPart.$decimalPart';
+        }
       }
 
-      // Final validation against the expected format
-      final match = _rxFinalMatch.firstMatch(finalNumber);
-      if (match != null) {
-        return match.group(0);
+      if (ignoreDecimals) {
+        if (_rxIntegerMatch.hasMatch(finalNumber)) return finalNumber;
+      } else {
+        final match = _rxDecimalMatch.firstMatch(finalNumber);
+        if (match != null) return match.group(0);
       }
     }
-
     return null;
   }
 }
