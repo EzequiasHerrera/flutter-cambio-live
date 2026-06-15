@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:country_flags/country_flags.dart';
+import 'package:flag/flag.dart';
 import 'package:howmuch/theme/app_theme.dart';
 
 class CurrencyIcon extends StatelessWidget {
@@ -40,14 +40,15 @@ class CurrencyIcon extends StatelessWidget {
       );
     }
 
-  // 🚩 CASO 2: BANDERAS NORMALES
-  return ClipRRect(
-    borderRadius: BorderRadius.circular(4),
-    child: CountryFlag.fromCountryCode(
-      flagCode.length >= 2 ? flagCode.substring(0, 2) : flagCode,
-      width: width,
-      height: height,
-    ),
-  );
-}
+    // 🚩 CASO 2: BANDERAS NORMALES
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: Flag.fromString(
+        flagCode.length >= 2 ? flagCode.substring(0, 2) : flagCode,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
 }

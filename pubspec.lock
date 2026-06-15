@@ -129,22 +129,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.1"
-  convert:
-    dependency: transitive
-    description:
-      name: convert
-      sha256: b30acd5944035672bc15c6b7a8b47d773e41e2f17de064350988c5d02adb1c68
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.1.2"
-  country_flags:
-    dependency: "direct main"
-    description:
-      name: country_flags
-      sha256: "78a7bf8aabd7ae1a90087f0c517471ac9ebfe07addc652692f58da0f0f833196"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.3.0"
   cross_file:
     dependency: transitive
     description:
@@ -177,6 +161,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.9"
+  enum_to_string:
+    dependency: transitive
+    description:
+      name: enum_to_string
+      sha256: "93b75963d3b0c9f6a90c095b3af153e1feccb79f6f08282d3274ff8d9eea52bc"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.1"
   fake_async:
     dependency: transitive
     description:
@@ -201,6 +193,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
+  flag:
+    dependency: "direct main"
+    description:
+      name: flag
+      sha256: "69e3e1d47453349ef72e2ebf4234b88024c0d57f9bcfaa7cc7facec49cd8561f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.0.2"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -352,22 +352,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.1"
-  jovial_misc:
-    dependency: transitive
-    description:
-      name: jovial_misc
-      sha256: "065b5240badae6b13472efdea28fffe8baf914a7831361469a95c6456d9b8dc8"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.10.0"
-  jovial_svg:
-    dependency: transitive
-    description:
-      name: jovial_svg
-      sha256: "99e9c3afcf7371ae38083ad52de23677d6d751f46150c3c6ae842e009e84d9f0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.29"
   json_annotation:
     dependency: transitive
     description:

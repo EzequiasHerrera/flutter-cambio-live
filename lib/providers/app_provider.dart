@@ -158,13 +158,14 @@ class AppProvider with ChangeNotifier {
     await _storage.saveSettings(settings);
   }
 
-  void disableCustomCurrency() {
+  void disableCustomCurrency() async {
     _useCustomCurrency = false;
     _targetCurrency = availableCurrencies.firstWhere(
       (c) => c.code != _baseCurrency?.code,
       orElse: () => availableCurrencies.first,
     );
     fetchRates();
+    await _saveEverything();
     notifyListeners();
   }
 

@@ -22,7 +22,7 @@ dependencies:
   flutter_native_splash: ^2.4.7
   flutter_launcher_icons: ^0.14.4
   lottie: ^3.3.3
-  country_flags: ^3.0.0
+  flag: ^7.0.2
   shared_preferences: ^2.5.5
 
 dev_dependencies:
