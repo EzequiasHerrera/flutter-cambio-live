@@ -1,16 +1,18 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
-  static const String keyBaseCurrency = "howmuch_base_currency";
-  static const String keyTargetCurrency = "howmuch_target_currency";
+  static const String keyFullSettings = 'howmuch_full_settings';
 
-  Future<void> saveString(String key, String value) async {
+  Future<void> saveSettings(Map<String, dynamic> settings) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(key, value);
+    await prefs.setString(keyFullSettings, jsonEncode(settings));
   }
 
-  Future<String?> getString(String key) async {
+  Future<Map<String, dynamic>?> getSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(key);
+    final String? data = prefs.getString(keyFullSettings);
+    if (data == null) return null;
+    return jsonDecode(data);
   }
 }

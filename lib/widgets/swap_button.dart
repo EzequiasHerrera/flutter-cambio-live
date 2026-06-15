@@ -17,7 +17,7 @@ class _SwapButtonState extends State<SwapButton> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<AppProvider>(context, listen: false);
+    final provider = Provider.of<AppProvider>(context);
     final colorScheme = Theme.of(context).colorScheme;
     final double offset = _isPressed ? 4.0 : 0.0;
 

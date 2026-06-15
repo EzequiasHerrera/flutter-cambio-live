@@ -5,10 +5,10 @@ import '../models/cart_item.dart';
 import '../services/currency_service.dart';
 
 class AppProvider with ChangeNotifier {
-  // Services
+  // Service Currencies from API
   final CurrencyService _currencyService = CurrencyService();
 
-  // Service: Storage
+  // Service: Local Storage
   final StorageService _storage = StorageService();
 
   // State: Currencies
@@ -42,26 +42,46 @@ class AppProvider with ChangeNotifier {
   }
 
   Future<void> _initSettings() async {
-    final baseCode = await _storage.getString(StorageService.keyBaseCurrency);
-    final targetCode = await _storage.getString(
-      StorageService.keyTargetCurrency,
-    );
+    final settings = await _storage.getSettings();
 
-    if (baseCode != null) {
-      _baseCurrency = availableCurrencies.firstWhere(
-        (currency) => currency.code == baseCode,
-        orElse: () => availableCurrencies.first,
-      );
+    if (settings != null) {
+      // 1. Restaurar estados básicos
+      _useCustomCurrency = settings['useCustom'] ?? false;
+      _customName = settings['customName'] ?? "Personalizada";
+      _customRate = settings['customRate'] ?? 1.0;
+
+      // 2. Restaurar moneda base
+      final baseCode = settings['baseCode'];
+      if (baseCode != null) {
+        _baseCurrency = availableCurrencies.firstWhere(
+          (c) => c.code == baseCode,
+          orElse: () => availableCurrencies.first,
+        );
+      }
+
+      // 3. Restaurar moneda destino (Lógica condicional)
+      if (_useCustomCurrency) {
+        // Si era personalizada, reconstruimos el objeto Currency especial
+        _targetCurrency = Currency(
+          code: 'CUSTOM',
+          name: _customName,
+          symbol: '',
+        );
+      } else {
+        // Si era normal, buscamos en la lista
+        final targetCode = settings['targetCode'];
+        if (targetCode != null) {
+          _targetCurrency = availableCurrencies.firstWhere(
+            (c) => c.code == targetCode,
+            orElse: () => availableCurrencies.last,
+          );
+        }
+      }
+
+      notifyListeners();
+      // Opcional: si ya teníamos moneda base, volvemos a traer las tasas del día
+      if (_baseCurrency != null) fetchRates();
     }
-
-    if (targetCode != null) {
-      _targetCurrency = availableCurrencies.firstWhere(
-        (currency) => currency.code == baseCode,
-        orElse: () => availableCurrencies.first,
-      );
-    }
-
-    notifyListeners();
   }
 
   // Getters
@@ -103,25 +123,39 @@ class AppProvider with ChangeNotifier {
   }
 
   // Public Methods: Currency Management
-  void setBaseCurrency(Currency currency) {
+  void setBaseCurrency(Currency currency) async {
     _baseCurrency = currency;
     if (!_useCustomCurrency) fetchRates();
+    await _saveEverything();
     notifyListeners();
   }
 
-  void setTargetCurrency(Currency currency) {
+  void setTargetCurrency(Currency currency) async {
     _useCustomCurrency = false;
     _targetCurrency = currency;
     fetchRates();
+    await _saveEverything();
     notifyListeners();
   }
 
-  void setCustomCurrency(String name, double rate) {
+  void setCustomCurrency(String name, double rate) async {
     _customName = name;
     _customRate = rate;
     _useCustomCurrency = true;
     _targetCurrency = Currency(code: 'CUSTOM', name: name, symbol: '');
+    await _saveEverything();
     notifyListeners();
+  }
+
+  Future<void> _saveEverything() async {
+    final settings = {
+      'baseCode': _baseCurrency?.code,
+      'targetCode': _targetCurrency?.code,
+      'useCustom': _useCustomCurrency,
+      'customName': _customName,
+      'customRate': _customRate,
+    };
+    await _storage.saveSettings(settings);
   }
 
   void disableCustomCurrency() {
@@ -134,7 +168,7 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void swapCurrencies() {
+  void swapCurrencies() async {
     if (_useCustomCurrency) return;
     if (_baseCurrency == null || _targetCurrency == null) return;
 
@@ -143,6 +177,7 @@ class AppProvider with ChangeNotifier {
     _targetCurrency = temp;
 
     fetchRates();
+    await _saveEverything();
     notifyListeners();
   }
 
