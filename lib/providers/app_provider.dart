@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:howmuch/services/storage_service.dart';
 import '../models/currency.dart';
 import '../models/cart_item.dart';
 import '../services/currency_service.dart';
@@ -6,6 +7,9 @@ import '../services/currency_service.dart';
 class AppProvider with ChangeNotifier {
   // Services
   final CurrencyService _currencyService = CurrencyService();
+
+  // Service: Storage
+  final StorageService _storage = StorageService();
 
   // State: Currencies
   Currency? _baseCurrency;
@@ -33,23 +37,52 @@ class AppProvider with ChangeNotifier {
 
   // Constructor
   AppProvider() {
-    _baseCurrency = availableCurrencies.firstWhere((c) => c.code == 'USD');
-    _targetCurrency = availableCurrencies.firstWhere((c) => c.code == 'ARS');
+    _initSettings();
     fetchRates();
+  }
+
+  Future<void> _initSettings() async {
+    final baseCode = await _storage.getString(StorageService.keyBaseCurrency);
+    final targetCode = await _storage.getString(
+      StorageService.keyTargetCurrency,
+    );
+
+    if (baseCode != null) {
+      _baseCurrency = availableCurrencies.firstWhere(
+        (currency) => currency.code == baseCode,
+        orElse: () => availableCurrencies.first,
+      );
+    }
+
+    if (targetCode != null) {
+      _targetCurrency = availableCurrencies.firstWhere(
+        (currency) => currency.code == baseCode,
+        orElse: () => availableCurrencies.first,
+      );
+    }
+
+    notifyListeners();
   }
 
   // Getters
   Currency? get baseCurrency => _baseCurrency;
+
   Currency? get targetCurrency => _targetCurrency;
+
   List<CartItem> get cart => _cart;
+
   bool get isLoading => _isLoading;
+
   bool get useCustomCurrency => _useCustomCurrency;
+
   String get customName => _customName;
+
   double get customRate => _customRate;
 
   // Logic: Calculations
   double get totalSaved {
-    if (_targetCurrency == null || (_rates.isEmpty && !_useCustomCurrency)) return 0.0;
+    if (_targetCurrency == null || (_rates.isEmpty && !_useCustomCurrency))
+      return 0.0;
 
     double total = 0.0;
     for (var item in _cart) {
@@ -144,13 +177,15 @@ class AppProvider with ChangeNotifier {
   void addToCart(double original, double converted) {
     if (_baseCurrency == null || _targetCurrency == null) return;
 
-    _cart.add(CartItem(
-      originalAmount: original,
-      originalCurrency: _baseCurrency!,
-      targetAmount: converted,
-      targetCurrency: _targetCurrency!,
-      timestamp: DateTime.now(),
-    ));
+    _cart.add(
+      CartItem(
+        originalAmount: original,
+        originalCurrency: _baseCurrency!,
+        targetAmount: converted,
+        targetCurrency: _targetCurrency!,
+        timestamp: DateTime.now(),
+      ),
+    );
     notifyListeners();
   }
 
