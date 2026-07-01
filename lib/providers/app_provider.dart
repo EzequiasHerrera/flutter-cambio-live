@@ -203,10 +203,17 @@ class AppProvider with ChangeNotifier {
     if (_useCustomCurrency) {
       return amount * _customRate;
     }
-    if (_targetCurrency == null || _rates.isEmpty) return 0.0;
+    if (_targetCurrency == null || _baseCurrency == null || _rates.isEmpty) {
+      return 0.0;
+    }
 
-    double rate = _rates[_targetCurrency!.code] ?? 1.0;
-    return amount * rate;
+    // Obtenemos las tasas de ambas monedas
+    // Al usar la proporción (target / base), nos aseguramos de que la conversión
+    // sea correcta sin importar cuál sea la moneda de referencia en el mapa de tasas.
+    double baseRate = _rates[_baseCurrency!.code] ?? 1.0;
+    double targetRate = _rates[_targetCurrency!.code] ?? 1.0;
+
+    return amount * (targetRate / baseRate);
   }
 
   // Public Methods: Cart Management

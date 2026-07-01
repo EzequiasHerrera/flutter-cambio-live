@@ -3,36 +3,53 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class CurrencyService {
-  static const String _baseUrl = 'https://api.exchangerate-api.com/v4/latest/';
+  // Apunta a tu Worker
+  static const String _proxyUrl =
+      'https://howmuch-api-proxy.ezequiasherrera99.workers.dev';
 
-  /// Fetches exchange rates for the given [baseCode].
-  /// Returns a map of currency codes to their exchange rates.
+  // Guardamos los rates en memoria para no llamar al proxy a cada rato
+  Map<String, double>? _cachedRates;
+
   Future<Map<String, double>> fetchRates(String baseCode) async {
     try {
-      final response = await http.get(Uri.parse('$_baseUrl$baseCode'));
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final rates = Map<String, double>.from(
-          data['rates'].map((key, value) => MapEntry(key, (value as num).toDouble())),
-        );
-        return rates;
-      } else {
-        debugPrint('Failed to fetch rates: ${response.statusCode}');
-        return _getMockRates(baseCode);
+      if (_cachedRates == null) {
+        // Llamamos al proxy para obtener las tasas y lo parseamos a JSON
+        final response = await http.get(Uri.parse(_proxyUrl));
+
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+
+          // El JSON tiene la estructura: "rates": {"USD": 1.0, "ARS": 1483.02, ...}
+          _cachedRates = Map<String, double>.from(
+            (data['rates'] as Map).map(
+              (key, value) => MapEntry(
+                key.toString(),
+                (value as num).toDouble(),
+              ),
+            ),
+          );
+        }
       }
+
+      // Si tenemos rates (sea por cache o recién cargados), los ajustamos a la base solicitada
+      if (_cachedRates != null) {
+        final double baseRate = _cachedRates![baseCode] ?? 1.0;
+        return _cachedRates!.map(
+          (key, value) => MapEntry(key, value / baseRate),
+        );
+      }
+
+      return _getMockRates(baseCode);
     } catch (e) {
-      debugPrint('Error fetching rates: $e');
+      debugPrint('Error fetching rates from proxy: $e');
       return _getMockRates(baseCode);
     }
   }
 
-  /// Provides fallback rates in case the API call fails or for offline development.
+  // Mock de tasas para pruebas
   Map<String, double> _getMockRates(String baseCode) {
-    if (baseCode == 'USD') {
-      return {'USD': 1.0, 'EUR': 0.85, 'BRL': 5.0, 'GBP': 0.75, 'JPY': 110.0, 'ARS': 850.0};
-    }
-    return {'USD': 1.0, 'EUR': 0.85, 'BRL': 5.0, 'ARS': 850.0};
+    final mockRates = {'USD': 1.0, 'EUR': 0.87, 'BRL': 5.18, 'ARS': 1483.02};
+    final baseRate = mockRates[baseCode] ?? 1.0;
+    return mockRates.map((key, value) => MapEntry(key, value / baseRate));
   }
 }
-
