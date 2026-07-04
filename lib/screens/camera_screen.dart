@@ -418,23 +418,26 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   Widget _buildFeedbackAndHowie(double keyboardHeight) {
     return Positioned(
       bottom: (_originalValue != null ? 190 : 40) + keyboardHeight,
-      left: 20,
-      right: 20,
+      left: 0,
+      right: 0,
       child: Column(
         children: [
-          ListenableBuilder(
-            listenable: _feedbackService,
-            builder: (context, child) {
-              return BubbleDialog(
-                message: _feedbackService.message ??
-                    (_isCalculatingManually
-                        ? "Escribe el precio que ves"
-                        : "¡Hola! Apunta a un precio para empezar"),
-                direction: BubbleDirection.bottom,
-              );
-            },
+          Transform.translate(
+            offset: const Offset(0, 35),
+            child: ListenableBuilder(
+              listenable: _feedbackService,
+              builder: (context, child) {
+                return BubbleDialog(
+                  message: _feedbackService.message ??
+                      (_isCalculatingManually
+                          ? "Escribe el precio que ves"
+                          : "¡Hola! Apunta a un precio para empezar"),
+                  direction: BubbleDirection.bottom,
+                );
+              },
+            ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 0),
           const SizedBox(height: 200, child: Howie()),
         ],
       ),

@@ -25,12 +25,11 @@ class BubbleDialog extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: colorScheme.surface,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: colorScheme.outlineVariant, width: 1),
             boxShadow: [
               BoxShadow(
-                color: colorScheme.shadow.withOpacity(0.1),
+                color: Colors.black.withOpacity(0.1),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -38,20 +37,20 @@ class BubbleDialog extends StatelessWidget {
           ),
           child: Text(
             message,
-            style: TextStyle(
-              color: colorScheme.onSurface,
+            style: const TextStyle(
+              color: Colors.black87,
               fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
           ),
         ),
-        _buildTriangle(colorScheme),
+        _buildTriangle(),
       ],
     );
   }
 
-  Widget _buildTriangle(ColorScheme colorScheme) {
+  Widget _buildTriangle() {
     double? left, right, top, bottom;
 
     switch (direction) {
@@ -65,7 +64,7 @@ class BubbleDialog extends StatelessWidget {
         break;
       case BubbleDirection.bottom:
         bottom = -10;
-        left = 20;
+        left = 60;
         break;
     }
 
@@ -76,9 +75,9 @@ class BubbleDialog extends StatelessWidget {
       bottom: bottom,
       child: CustomPaint(
         painter: TrianglePainter(
-          strokeColor: colorScheme.outlineVariant,
-          fillColor: colorScheme.surface,
-          strokeWidth: 1,
+          strokeColor: Colors.transparent,
+          fillColor: Colors.white,
+          strokeWidth: 0,
           direction: direction,
         ),
         size: const Size(12, 12),
