@@ -111,13 +111,19 @@ class PriceCard extends StatelessWidget {
                 '${provider.targetCurrency?.symbol ?? currencyCode} ${formatPrice(convertedValue)}',
                 style: TextStyle(
                   color: colorScheme.primary,
-                  fontSize: 38,
+                  fontSize: 44, // Más grande para mayor impacto
                   fontWeight: FontWeight.w900,
+                  letterSpacing: -1.5, // Más compacto para que se vea más "bold"
                 ),
               ),
               const SizedBox(height: 15),
               Theme(
-                data: AppTheme.darkTheme,
+                // Usamos el Light Theme como base pero inyectamos el color de texto del Dark Theme
+                data: lightTheme.copyWith(
+                  colorScheme: lightTheme.colorScheme.copyWith(
+                    onPrimary: AppTheme.darkTheme.colorScheme.onPrimary,
+                  ),
+                ),
                 child: ActionButton(
                   icon: Icons.add_shopping_cart,
                   label: "Guardar Precio",
