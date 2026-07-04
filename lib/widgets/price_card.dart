@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:howmuch/providers/app_provider.dart';
 import 'package:howmuch/widgets/action_button.dart';
 import 'package:howmuch/widgets/currency_icon.dart';
+import 'package:howmuch/theme/app_theme.dart';
 
 class PriceCard extends StatelessWidget {
   final String text;
@@ -20,98 +21,111 @@ class PriceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final provider = Provider.of<AppProvider>(context);
 
-    return Card(
-      color: colorScheme.tertiaryContainer,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Izquierda: banderas y par de conversión
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CurrencyIcon(
-                          currencyCode: provider.baseCurrency?.code ?? '',
-                          width: 24,
-                          height: 16,
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4.0),
-                          child: Icon(Icons.arrow_forward_rounded,
-                              size: 14, color: Colors.black45),
-                        ),
-                        CurrencyIcon(
-                          currencyCode: provider.targetCurrency?.code ?? '',
-                          width: 24,
-                          height: 16,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${provider.baseCurrency?.code} → ${provider.targetCurrency?.code}',
-                      style: TextStyle(
-                        color: colorScheme.onTertiaryContainer.withOpacity(0.8),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+    // Forzamos el uso de los colores y estilo del tema claro (Light Theme)
+    final lightTheme = AppTheme.lightTheme;
+    final colorScheme = lightTheme.colorScheme;
+
+    // Colores de gris específicos para legibilidad en modo claro
+    final secondaryTextColor = Colors.grey[600];
+    final mainTextColor = Colors.grey[800];
+
+    return Theme(
+      data: lightTheme,
+      child: Card(
+        color: colorScheme.tertiaryContainer,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Izquierda: banderas y par de conversión
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          CurrencyIcon(
+                            currencyCode: provider.baseCurrency?.code ?? '',
+                            width: 24,
+                            height: 16,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            child: Icon(Icons.arrow_forward_rounded,
+                                size: 14, color: secondaryTextColor),
+                          ),
+                          CurrencyIcon(
+                            currencyCode: provider.targetCurrency?.code ?? '',
+                            width: 24,
+                            height: 16,
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                // Derecha: precio original
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Precio Original',
-                      style: TextStyle(
-                        color: colorScheme.onTertiaryContainer.withOpacity(0.6),
-                        fontSize: 11,
+                      const SizedBox(height: 4),
+                      Text(
+                        '${provider.baseCurrency?.code} → ${provider.targetCurrency?.code}',
+                        style: TextStyle(
+                          color: secondaryTextColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    Text(
-                      '${provider.baseCurrency?.code} $text',
-                      style: TextStyle(
-                        color: colorScheme.onTertiaryContainer,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                    ],
+                  ),
+                  // Derecha: precio original
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Precio Original',
+                        style: TextStyle(
+                          color: secondaryTextColor?.withOpacity(0.8),
+                          fontSize: 11,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            Divider(
-              color: colorScheme.onTertiaryContainer.withOpacity(0.1),
-              height: 25,
-            ),
-            // Precio convertido
-            Text(
-              '${provider.targetCurrency?.symbol ?? currencyCode} ${formatPrice(convertedValue)}',
-              style: TextStyle(
-                color: colorScheme.primary,
-                fontSize: 38,
-                fontWeight: FontWeight.bold,
+                      Text(
+                        '${provider.baseCurrency?.code} $text',
+                        style: TextStyle(
+                          color: mainTextColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 15),
-            ActionButton(
-              icon: Icons.add_shopping_cart,
-              label: "Guardar Precio",
-              onPressed: onSave,
-            ),
-          ],
+              Divider(
+                color: mainTextColor?.withOpacity(0.1),
+                height: 25,
+              ),
+              // Precio convertido
+              Text(
+                '${provider.targetCurrency?.symbol ?? currencyCode} ${formatPrice(convertedValue)}',
+                style: TextStyle(
+                  color: colorScheme.primary,
+                  fontSize: 38,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 15),
+              Theme(
+                data: AppTheme.darkTheme,
+                child: ActionButton(
+                  icon: Icons.add_shopping_cart,
+                  label: "Guardar Precio",
+                  onPressed: onSave,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -103,7 +103,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 children: [
                   // Entrada de precio
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
                       color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(24),
@@ -119,36 +119,64 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                         ),
                       ],
                     ),
-                    child: Column(
+                    child: Row(
                       children: [
-                        Text(
-                          'Precio en ${provider.baseCurrency?.code}',
-                          style: TextStyle(
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
                             color: colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: Text(
+                              '\$',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
-                        TextField(
-                          controller: _controller,
-                          focusNode: _focusNode,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: colorScheme.onSurface,
-                            fontSize: 42,
-                            fontWeight: FontWeight.bold,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Precio en ${provider.baseCurrency?.code}',
+                                style: TextStyle(
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              TextField(
+                                controller: _controller,
+                                focusNode: _focusNode,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                textAlign: TextAlign.left,
+                                style: TextStyle(
+                                  color: colorScheme.onSurface,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: "0.00",
+                                  hintStyle: TextStyle(
+                                      color: colorScheme.onSurface.withOpacity(0.1)),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                                ),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
+                                ],
+                                onChanged: _onChanged,
+                              ),
+                            ],
                           ),
-                          decoration: InputDecoration(
-                            hintText: "0.00",
-                            hintStyle: TextStyle(
-                                color: colorScheme.onSurface.withOpacity(0.1)),
-                            border: InputBorder.none,
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
-                          ],
-                          onChanged: _onChanged,
                         ),
                       ],
                     ),
