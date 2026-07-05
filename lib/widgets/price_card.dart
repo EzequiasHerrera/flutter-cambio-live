@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as dev;
 import 'package:provider/provider.dart';
 import 'package:howmuch/providers/app_provider.dart';
 import 'package:howmuch/widgets/action_button.dart';
 import 'package:howmuch/widgets/currency_icon.dart';
 import 'package:howmuch/theme/app_theme.dart';
+import 'package:howmuch/services/feedback_service.dart';
 
-class PriceCard extends StatelessWidget {
+class PriceCard extends StatefulWidget {
   final String text;
   final double convertedValue;
   final String currencyCode;
@@ -20,9 +22,24 @@ class PriceCard extends StatelessWidget {
   });
 
   @override
+  State<PriceCard> createState() => _PriceCardState();
+}
+
+class _PriceCardState extends State<PriceCard> {
+  @override
+  void didUpdateWidget(PriceCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Disparar vibración y log solo cuando el valor cambia realmente
+    if (oldWidget.convertedValue != widget.convertedValue) {
+      FeedbackService.heavy();
+      dev.log("Precio actualizado: ${widget.convertedValue}", name: "PRICE_CARD");
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final provider = Provider.of<AppProvider>(context);
-
+    
     // Forzamos el uso de los colores y estilo del tema claro (Light Theme)
     final lightTheme = AppTheme.lightTheme;
     final colorScheme = lightTheme.colorScheme;
@@ -91,7 +108,7 @@ class PriceCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '${provider.baseCurrency?.code} $text',
+                        '${provider.baseCurrency?.code} ${widget.text}',
                         style: TextStyle(
                           color: mainTextColor,
                           fontWeight: FontWeight.w600,
@@ -104,21 +121,39 @@ class PriceCard extends StatelessWidget {
               ),
               Divider(
                 color: mainTextColor?.withOpacity(0.1),
-                height: 25,
+                height: 12,
               ),
-              // Precio convertido
-              Text(
-                '${provider.targetCurrency?.symbol ?? currencyCode} ${formatPrice(convertedValue)}',
-                style: TextStyle(
-                  color: colorScheme.primary,
-                  fontSize: 44, // Más grande para mayor impacto
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1.5, // Más compacto para que se vea más "bold"
+              // Precio convertido con animación de escala
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                reverseDuration: const Duration(milliseconds: 0),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return ScaleTransition(
+                    scale: CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutBack,
+                    ),
+                    child: FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    ),
+                  );
+                },
+                child: Text(
+                  '${provider.targetCurrency?.symbol ?? widget.currencyCode} ${formatPrice(widget.convertedValue)}',
+                  // La ValueKey asegura que AnimatedSwitcher detecte el cambio y dispare la animación
+                  key: ValueKey<double>(widget.convertedValue),
+                  style: TextStyle(
+                    color: colorScheme.primary,
+                    fontSize: 45,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1.5,
+                  ),
                 ),
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 10),
               Theme(
-                // Usamos el Light Theme como base pero inyectamos el color de texto del Dark Theme
+                // Forzamos sombras claras pero usamos el color de texto del tema oscuro
                 data: lightTheme.copyWith(
                   colorScheme: lightTheme.colorScheme.copyWith(
                     onPrimary: AppTheme.darkTheme.colorScheme.onPrimary,
@@ -127,7 +162,7 @@ class PriceCard extends StatelessWidget {
                 child: ActionButton(
                   icon: Icons.add_shopping_cart,
                   label: "Guardar Precio",
-                  onPressed: onSave,
+                  onPressed: widget.onSave,
                 ),
               ),
             ],

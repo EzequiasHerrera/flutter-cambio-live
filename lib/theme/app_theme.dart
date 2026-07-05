@@ -55,6 +55,16 @@ class AppTheme {
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
       hoverColor: Colors.transparent,
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: scheme.primary, // Fondo
+        contentTextStyle: TextStyle(color: scheme.onPrimary, fontWeight: FontWeight.w600), // Texto
+        behavior: SnackBarBehavior.floating, // Flotante
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radius), // Bordes redondeados
+          side: BorderSide(color: scheme.outline.withOpacity(0.1)),
+        ),
+        elevation: 0,
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: scheme.primary,
