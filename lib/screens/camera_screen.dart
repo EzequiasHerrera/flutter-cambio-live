@@ -271,7 +271,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       body: Stack(
         children: [
           _buildCameraPreview(),
-          if (!_isCalculatingManually) _buildRoiOverlay(),
+          _isCalculatingManually
+              ? Container(color: Colors.black.withOpacity(0.6))
+              : _buildRoiOverlay(),
           _buildActionButtons(),
           if (_showDebugOverlay) _buildDebugOverlay(),
           if (_isCalculatingManually) _buildManualInputField(),
@@ -386,31 +388,57 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   }
 
   Widget _buildManualInputField() {
-    return Center(
-      child: Container(
-        width: _roiWidth,
-        height: _roiHeight,
-        alignment: Alignment.center,
-        child: TextField(
-          controller: _manualPriceController,
-          focusNode: _manualFocusNode,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 42,
+    final topPadding = MediaQuery.of(context).padding.top;
+    return Positioned(
+      top: topPadding + 120,
+      left: 0,
+      right: 0,
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: _manualPriceController,
+        builder: (context, value, child) {
+          final bool isEmpty = value.text.isEmpty;
+          final color = isEmpty ? Colors.white24 : Colors.white;
+          final textStyle = TextStyle(
+            color: color,
+            fontSize: 52,
             fontWeight: FontWeight.bold,
-          ),
-          decoration: const InputDecoration(
-            hintText: "0.00",
-            hintStyle: TextStyle(color: Colors.white24),
-            border: InputBorder.none,
-          ),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
-          ],
-          onChanged: _onManualAmountChanged,
-        ),
+          );
+
+          // Medimos el ancho total incluyendo el símbolo $ para que el bloque esté centrado
+          final displayValue = isEmpty ? "0.00" : value.text;
+          final fullText = "\$ $displayValue";
+          final textPainter = TextPainter(
+            text: TextSpan(text: fullText, style: textStyle),
+            textDirection: TextDirection.ltr,
+          )..layout();
+
+          return Center(
+            child: SizedBox(
+              width: textPainter.width + 16, // Espacio para el cursor
+              child: TextField(
+                controller: _manualPriceController,
+                focusNode: _manualFocusNode,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                textAlign: TextAlign.left,
+                style: textStyle,
+                cursorColor: Colors.white,
+                decoration: InputDecoration(
+                  prefixText: "\$ ",
+                  prefixStyle: textStyle,
+                  hintText: "0.00",
+                  hintStyle: textStyle.copyWith(color: Colors.white24),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
+                ],
+                onChanged: _onManualAmountChanged,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
