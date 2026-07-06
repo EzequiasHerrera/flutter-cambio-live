@@ -34,14 +34,14 @@ class HomeScreen extends StatelessWidget {
                   _buildHeader(),
                   const SizedBox(height: 20),
                   _buildConverterCard(context, provider, colorScheme),
-                  const SizedBox(height: 40),
-                  _buildActionButtons(context),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
           );
         },
       ),
+      bottomNavigationBar: _buildActionButtons(context),
     );
   }
 
@@ -273,29 +273,68 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildActionButtons(BuildContext context) {
-    return Column(
-      children: [
-        ActionButton(
-          icon: Icons.camera_alt,
-          label: 'Ir a la Cámara',
-          onPressed: () => Navigator.pushNamed(context, '/camera'),
-          isPrimary: true,
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _buildNavButton(
+              context,
+              icon: Icons.calculate_rounded,
+              label: 'Calculadora',
+              onPressed: () => Navigator.pushNamed(context, '/calculator'),
+              isPrimary: false,
+            ),
+            const SizedBox(width: 15),
+            _buildNavButton(
+              context,
+              icon: Icons.camera_alt_rounded,
+              label: 'Cámara',
+              onPressed: () => Navigator.pushNamed(context, '/camera'),
+              isPrimary: true,
+            ),
+            const SizedBox(width: 15),
+            _buildNavButton(
+              context,
+              icon: Icons.shopping_cart_rounded,
+              label: 'Carrito',
+              onPressed: () => Navigator.pushNamed(context, '/cart'),
+              isPrimary: false,
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        ActionButton(
-          icon: Icons.calculate_rounded,
-          label: 'Calculadora',
-          onPressed: () => Navigator.pushNamed(context, '/calculator'),
-          isPrimary: false,
-        ),
-        const SizedBox(height: 12),
-        ActionButton(
-          icon: Icons.shopping_cart,
-          label: 'Ver Carrito',
-          onPressed: () => Navigator.pushNamed(context, '/cart'),
-          isPrimary: false,
-        ),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildNavButton(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    required bool isPrimary,
+  }) {
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          ActionButton(
+            icon: icon,
+            onPressed: onPressed,
+            isPrimary: isPrimary,
+          ),
+        ],
+      ),
     );
   }
 }
