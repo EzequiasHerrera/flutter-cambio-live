@@ -16,6 +16,7 @@ class AppProvider with ChangeNotifier {
   Currency? _targetCurrency;
   Map<String, double> _rates = {};
   bool _isLoading = false;
+  String? _errorMessage;
 
   // State: Custom Currency
   bool _useCustomCurrency = false;
@@ -91,6 +92,12 @@ class AppProvider with ChangeNotifier {
         }
       }
 
+      // 5. Restaurar Tasas (Cache offline)
+      final savedRates = settings['rates'] as Map<String, dynamic>?;
+      if (savedRates != null) {
+        _rates = savedRates.map((key, value) => MapEntry(key, (value as num).toDouble()));
+      }
+
       notifyListeners();
       // Opcional: si ya teníamos moneda base, volvemos a traer las tasas del día
       if (_baseCurrency != null) fetchRates();
@@ -105,6 +112,8 @@ class AppProvider with ChangeNotifier {
   List<CartItem> get cart => _cart;
 
   bool get isLoading => _isLoading;
+
+  String? get errorMessage => _errorMessage;
 
   bool get useCustomCurrency => _useCustomCurrency;
 
@@ -168,6 +177,7 @@ class AppProvider with ChangeNotifier {
       'customName': _customName,
       'customRate': _customRate,
       'cart': _cart.map((item) => item.toJson()).toList(),
+      'rates': _rates,
     };
     await _storage.saveSettings(settings);
   }
@@ -201,12 +211,15 @@ class AppProvider with ChangeNotifier {
     if (_baseCurrency == null || _useCustomCurrency) return;
 
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
       _rates = await _currencyService.fetchRates(_baseCurrency!.code);
+      _errorMessage = null;
     } catch (e) {
       debugPrint("Error al obtener tasas: $e");
+      _errorMessage = "No se pudieron obtener las tasas. Verifica tu conexión.";
     } finally {
       _isLoading = false;
       notifyListeners();
