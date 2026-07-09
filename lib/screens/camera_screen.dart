@@ -445,12 +445,12 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       right: 20,
       child: Column(
         children: [
-          ActionButton(
-            width: 55,
-            icon: _showDebugOverlay ? Icons.bug_report : Icons.bug_report_outlined,
-            onPressed: () => setState(() => _showDebugOverlay = !_showDebugOverlay),
-          ),
-          const SizedBox(height: 15),
+          // ActionButton(
+          //   width: 55,
+          //   icon: _showDebugOverlay ? Icons.bug_report : Icons.bug_report_outlined,
+          //   onPressed: () => setState(() => _showDebugOverlay = !_showDebugOverlay),
+          // ),
+          // const SizedBox(height: 15),
           ActionButton(
             width: 55,
             icon: _isCalculatingManually ? Icons.edit : Icons.edit_outlined,

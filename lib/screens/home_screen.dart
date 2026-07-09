@@ -89,6 +89,7 @@ class HomeScreen extends StatelessWidget {
             height: isSmallScreen ? 150 : 200,
             child: const Howie(),
           ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
