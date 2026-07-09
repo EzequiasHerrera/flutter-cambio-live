@@ -275,6 +275,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           _isCalculatingManually
               ? Container(color: Colors.black.withOpacity(0.6))
               : _buildRoiOverlay(),
+          _buildIntegerModeIndicator(),
+          _buildManualModeIndicator(),
           _buildActionButtons(),
           if (_showDebugOverlay) _buildDebugOverlay(),
           if (_isCalculatingManually) _buildManualInputField(),
@@ -293,6 +295,105 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           width: _camera.controller!.value.previewSize?.height ?? 1080,
           height: _camera.controller!.value.previewSize?.width ?? 1920,
           child: CameraPreview(_camera.controller!),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIntegerModeIndicator() {
+    if (!_isIgnoringDecimals || _isCalculatingManually) return const SizedBox.shrink();
+
+    final colorScheme = Theme.of(context).colorScheme;
+    final screenSize = MediaQuery.of(context).size;
+    final roiTop = (screenSize.height / 2) - (_roiHeight / 2);
+
+    return Positioned(
+      top: roiTop - 70,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: colorScheme.primary,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow,
+                offset: const Offset(0, 4),
+                blurRadius: 0,
+              )
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.warning_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Leyendo solo enteros',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildManualModeIndicator() {
+    if (!_isCalculatingManually) return const SizedBox.shrink();
+
+    final colorScheme = Theme.of(context).colorScheme;
+    final topPadding = MediaQuery.of(context).padding.top;
+
+    return Positioned(
+      top: topPadding + kToolbarHeight + 10,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: colorScheme.primary,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow,
+                offset: const Offset(0, 4),
+                blurRadius: 0,
+              )
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.edit,
+                color: Colors.white,
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Ingreso Manual',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -352,7 +453,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           const SizedBox(height: 15),
           ActionButton(
             width: 55,
-            icon: _isCalculatingManually ? Icons.calculate : Icons.calculate_outlined,
+            icon: _isCalculatingManually ? Icons.edit : Icons.edit_outlined,
             onPressed: _toggleManualMode,
           ),
           const SizedBox(height: 15),
@@ -384,7 +485,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   Widget _buildManualInputField() {
     final topPadding = MediaQuery.of(context).padding.top;
     return Positioned(
-      top: topPadding + 120,
+      top: topPadding + kToolbarHeight + 80,
       left: 0,
       right: 0,
       child: ValueListenableBuilder<TextEditingValue>(
@@ -438,8 +539,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   }
 
   Widget _buildFeedbackAndHowie(double keyboardHeight) {
+    final double manualOffset = _isCalculatingManually ? -10 : 0;
     return Positioned(
-      bottom: (_originalValue != null ? 190 : 40) + keyboardHeight,
+      bottom: (_originalValue != null ? 190 : 40) + keyboardHeight + manualOffset,
       left: 0,
       right: 0,
       child: Column(
@@ -450,10 +552,11 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
               listenable: _feedbackService,
               builder: (context, child) {
                 return BubbleDialog(
-                  message: _feedbackService.message ??
-                      (_isCalculatingManually
-                          ? "Escribe el precio que ves"
-                          : "¡Hola! Apunta a un precio para empezar"),
+                  message: _isCalculatingManually
+                      ? "Solo escríbelo y listo"
+                      : _isIgnoringDecimals
+                          ? "A veces es más simple, ¿cierto?"
+                          : (_feedbackService.message ?? "¡Hola! Apunta a un precio para empezar"),
                   direction: BubbleDirection.bottom,
                 );
               },
@@ -467,8 +570,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   }
 
   Widget _buildPriceResult(AppProvider provider, double keyboardHeight) {
+    final double manualOffset = _isCalculatingManually ? -10 : 0;
     return Positioned(
-      bottom: 40 + keyboardHeight,
+      bottom: 40 + keyboardHeight + manualOffset,
       left: 20,
       right: 20,
       child: PriceCard(
