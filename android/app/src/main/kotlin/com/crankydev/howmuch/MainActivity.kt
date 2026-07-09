@@ -1,4 +1,4 @@
-package com.example.cambio_live
+package com.crankydev.howmuch
 
 import io.flutter.embedding.android.FlutterActivity
 

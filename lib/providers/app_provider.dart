@@ -38,6 +38,10 @@ class AppProvider with ChangeNotifier {
 
   // Constructor
   AppProvider() {
+    // 1. Establecer valores iniciales por defecto (USD -> ARS) para evitar nulos en primer arranque
+    _baseCurrency = availableCurrencies.firstWhere((c) => c.code == 'USD');
+    _targetCurrency = availableCurrencies.firstWhere((c) => c.code == 'ARS');
+
     _initSettings();
     fetchRates();
   }

@@ -41,6 +41,18 @@ class CurrencyIcon extends StatelessWidget {
     }
 
     // 🚩 CASO 2: BANDERAS NORMALES
+    if (flagCode.isEmpty) {
+      return Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: const Icon(Icons.help_outline, size: 12),
+      );
+    }
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
       child: Flag.fromString(
