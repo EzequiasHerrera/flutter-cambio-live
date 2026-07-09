@@ -78,6 +78,19 @@ class AppProvider with ChangeNotifier {
         }
       }
 
+      // 4. Restaurar Carrito
+      final cartData = settings['cart'] as List<dynamic>?;
+      if (cartData != null) {
+        _cart.clear();
+        for (var itemJson in cartData) {
+          try {
+            _cart.add(CartItem.fromJson(itemJson as Map<String, dynamic>));
+          } catch (e) {
+            debugPrint("Error al cargar item del carrito: $e");
+          }
+        }
+      }
+
       notifyListeners();
       // Opcional: si ya teníamos moneda base, volvemos a traer las tasas del día
       if (_baseCurrency != null) fetchRates();
@@ -154,6 +167,7 @@ class AppProvider with ChangeNotifier {
       'useCustom': _useCustomCurrency,
       'customName': _customName,
       'customRate': _customRate,
+      'cart': _cart.map((item) => item.toJson()).toList(),
     };
     await _storage.saveSettings(settings);
   }
@@ -217,7 +231,7 @@ class AppProvider with ChangeNotifier {
   }
 
   // Public Methods: Cart Management
-  void addToCart(double original, double converted) {
+  void addToCart(double original, double converted) async {
     if (_baseCurrency == null || _targetCurrency == null) return;
 
     _cart.add(
@@ -229,11 +243,21 @@ class AppProvider with ChangeNotifier {
         timestamp: DateTime.now(),
       ),
     );
+    await _saveEverything();
     notifyListeners();
   }
 
-  void clearCart() {
+  void clearCart() async {
     _cart.clear();
+    await _saveEverything();
     notifyListeners();
+  }
+
+  void removeFromCart(int index) async {
+    if (index >= 0 && index < _cart.length) {
+      _cart.removeAt(index);
+      await _saveEverything();
+      notifyListeners();
+    }
   }
 }

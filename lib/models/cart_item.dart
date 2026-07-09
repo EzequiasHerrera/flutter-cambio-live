@@ -15,6 +15,22 @@ class CartItem {
     required this.timestamp,
   });
 
+  Map<String, dynamic> toJson() => {
+        'originalAmount': originalAmount,
+        'originalCurrency': originalCurrency.toJson(),
+        'targetAmount': targetAmount,
+        'targetCurrency': targetCurrency.toJson(),
+        'timestamp': timestamp.toIso8601String(),
+      };
+
+  factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
+        originalAmount: json['originalAmount'],
+        originalCurrency: Currency.fromJson(json['originalCurrency']),
+        targetAmount: json['targetAmount'],
+        targetCurrency: Currency.fromJson(json['targetCurrency']),
+        timestamp: DateTime.parse(json['timestamp']),
+      );
+
   /// Factory constructor for creating a CartItem from JSON (if needed later)
   // factory CartItem.fromJson(Map<String, dynamic> json) => ...
 

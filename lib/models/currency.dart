@@ -9,6 +9,18 @@ class Currency {
     this.symbol = '',
   });
 
+  Map<String, dynamic> toJson() => {
+        'code': code,
+        'name': name,
+        'symbol': symbol,
+      };
+
+  factory Currency.fromJson(Map<String, dynamic> json) => Currency(
+        code: json['code'],
+        name: json['name'],
+        symbol: json['symbol'] ?? '',
+      );
+
   /// Returns the two-letter country code for flags, with special cases.
   String get flagCode {
     if (code == 'EUR') return 'EU';
