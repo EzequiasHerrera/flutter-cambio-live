@@ -13,6 +13,7 @@ import 'package:howmuch/services/ocr_service.dart';
 import 'package:howmuch/widgets/action_button.dart';
 import 'package:howmuch/widgets/bubble_dialog.dart';
 import 'package:howmuch/widgets/custom_app_bar.dart';
+import 'package:howmuch/widgets/dashed_rect_painter.dart';
 import 'package:howmuch/widgets/debug_overlay_painter.dart';
 import 'package:howmuch/widgets/howie.dart';
 import 'package:howmuch/widgets/price_card.dart';
@@ -327,16 +328,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           ),
         ),
         Center(
-          child: Container(
-            width: _roiWidth,
-            height: _roiHeight,
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: Colors.blueAccent.withOpacity(0.8),
-                width: 3,
-              ),
-              borderRadius: BorderRadius.circular(15),
-            ),
+          child: CustomPaint(
+            size: const Size(_roiWidth, _roiHeight),
+            painter: DashedRectPainter(),
           ),
         ),
       ],
