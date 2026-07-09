@@ -281,8 +281,8 @@ class HomeScreen extends StatelessWidget {
           children: [
             _buildNavButton(
               context,
-              icon: Icons.calculate_rounded,
-              label: 'Calculadora',
+              icon: Icons.currency_exchange_rounded,
+              label: 'Conversor',
               onPressed: () => Navigator.pushNamed(context, '/calculator'),
               isPrimary: false,
             ),
