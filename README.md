@@ -1,16 +1,29 @@
-# cambio_live
+# Howmuch 💱
 
-A new Flutter project.
+**Howmuch** es una aplicación móvil de conversión de divisas en tiempo real mediante la cámara del celular, desarrollada en Flutter.
 
-## Getting Started
+## 🚀 Propósito
+Permite que un usuario apuntar con la cámara a la etiqueta de precio de un producto para detectarlo de forma instantánea y transformarlo al valor de su moneda elegida, sin necesidad de tipear números ni hacer cálculos mentales.
 
-This project is a starting point for a Flutter application.
+## 🎨 El Factor Howie
+La app cuenta con **Howie**, una mascota propia que le otorga una identidad visual única, carismática y memorable.
 
-A few resources to get you started if this is your first Flutter project:
+## 🛠️ Stack Tecnológico
+* **Framework:** Flutter (Dart & C++ nativo)
+* **OCR Engine:** Google ML Kit Text Recognition
+* **Plataformas:** Android e iOS
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+---
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 🔒 Política de Privacidad / Privacy Policy
+
+*Última actualización: Agosto de 2026*
+
+En **Howmuch** nos tomamos muy en serio la privacidad de nuestros usuarios. A continuación explicamos cómo se gestionan los datos en la aplicación:
+
+1. **Uso de la Cámara:** La aplicación requiere acceso a la cámara del dispositivo exclusivamente para realizar el Reconocimiento Óptico de Caracteres (OCR) sobre las etiquetas de precios en tiempo real.
+2. **Procesamiento Local:** El procesamiento del flujo de la cámara se realiza 100% de manera local en el dispositivo utilizando la biblioteca Google ML Kit. **Howmuch no captura, almacena, graba ni transmite fotos, videos o fotogramas a ningún servidor externo.**
+3. **Recopilación de Datos:** La aplicación no recopila, solicita, almacena ni comparte ningún tipo de información de identificación personal, ubicación ni datos del usuario.
+4. **Conexión a Internet:** La conexión a internet se utiliza de manera puntual únicamente para consultar y actualizar las tasas de cambio de divisas oficiales.
+
+Si tienes alguna pregunta o duda sobre esta política de privacidad, puedes contactarnos a través de este repositorio de GitHub o por correo electrónico a crankylabs@gmail.com.
