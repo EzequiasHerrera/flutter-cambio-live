@@ -27,7 +27,8 @@ class CameraScreen extends StatefulWidget {
   State<CameraScreen> createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver {
+class _CameraScreenState extends State<CameraScreen>
+    with WidgetsBindingObserver {
   // Services & Logic
   final CameraService _camera = CameraService();
   final OCRService _ocr = OCRService();
@@ -87,10 +88,14 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
 
   @override
   Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
-    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+    super.didChangeAppLifecycleState(state);
+
+    if (state == AppLifecycleState.paused) {
       await _camera.dispose();
     } else if (state == AppLifecycleState.resumed) {
-      _initializeCamera();
+      if (!_camera.isInitialized) {
+        _initializeCamera();
+      }
     }
   }
 
@@ -100,12 +105,17 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     if (_isInitializing) return;
     _isInitializing = true;
 
-    await _camera.initialize(_onFrame);
+    try {
+      await _camera.initialize(_onFrame);
 
-    if (mounted) {
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      debugPrint("Error initializing camera: $e");
+    } finally {
+      _isInitializing = false;
     }
-    _isInitializing = false;
   }
 
   // --- Pipeline Processing ---
@@ -114,7 +124,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     if (!mounted || _isProcessing || _isCalculatingManually) return;
 
     final now = DateTime.now();
-    if (now.difference(_lastProcessTime).inMilliseconds < OCRService.processIntervalMs) return;
+    if (now.difference(_lastProcessTime).inMilliseconds <
+        OCRService.processIntervalMs)
+      return;
 
     _isProcessing = true;
     _lastProcessTime = now;
@@ -135,7 +147,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
         setState(() {
           _frameDetections = [
             for (var block in text.blocks)
-              for (var line in block.lines) (text: line.text, rect: line.boundingBox),
+              for (var line in block.lines)
+                (text: line.text, rect: line.boundingBox),
           ];
         });
       }
@@ -157,7 +170,10 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
 
       if (rawPrice == null) return;
 
-      final stable = _priceInterpreter.getStablePrice(rawPrice, _feedbackService);
+      final stable = _priceInterpreter.getStablePrice(
+        rawPrice,
+        _feedbackService,
+      );
       if (stable == null) return;
 
       final provider = Provider.of<AppProvider>(context, listen: false);
@@ -182,7 +198,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     double imgWidth = imgSize.width;
     double imgHeight = imgSize.height;
 
-    if (screenSize.height > screenSize.width && imgSize.width > imgSize.height) {
+    if (screenSize.height > screenSize.width &&
+        imgSize.width > imgSize.height) {
       imgWidth = imgSize.height;
       imgHeight = imgSize.width;
     }
@@ -283,7 +300,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           if (_isDevModeActive && _showDebugOverlay) _buildDebugOverlay(),
           if (_isCalculatingManually) _buildManualInputField(),
           _buildFeedbackAndHowie(keyboardHeight),
-          if (_originalValue != null) _buildPriceResult(provider, keyboardHeight),
+          if (_originalValue != null)
+            _buildPriceResult(provider, keyboardHeight),
         ],
       ),
     );
@@ -303,7 +321,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   }
 
   Widget _buildIntegerModeIndicator() {
-    if (!_isIgnoringDecimals || _isCalculatingManually) return const SizedBox.shrink();
+    if (!_isIgnoringDecimals || _isCalculatingManually)
+      return const SizedBox.shrink();
 
     final colorScheme = Theme.of(context).colorScheme;
     final screenSize = MediaQuery.of(context).size;
@@ -324,17 +343,13 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                 color: colorScheme.shadow,
                 offset: const Offset(0, 4),
                 blurRadius: 0,
-              )
+              ),
             ],
           ),
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.warning_rounded,
-                color: Colors.white,
-                size: 22,
-              ),
+              Icon(Icons.warning_rounded, color: Colors.white, size: 22),
               SizedBox(width: 8),
               Text(
                 'Leyendo solo enteros',
@@ -373,17 +388,13 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                 color: colorScheme.shadow,
                 offset: const Offset(0, 4),
                 blurRadius: 0,
-              )
+              ),
             ],
           ),
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.edit,
-                color: Colors.white,
-                size: 20,
-              ),
+              Icon(Icons.edit, color: Colors.white, size: 20),
               SizedBox(width: 8),
               Text(
                 'Ingreso Manual',
@@ -448,21 +459,25 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       child: Column(
         children: [
           ListenableBuilder(
-              listenable: DebugState.instance,
-              builder: (context, child){
-                if(!_isDevModeActive) return const SizedBox.shrink();
+            listenable: DebugState.instance,
+            builder: (context, child) {
+              if (!_isDevModeActive) return const SizedBox.shrink();
 
-            return Column(
-              children: [
-                ActionButton(
-                  width: 55,
-                  icon: _showDebugOverlay ? Icons.bug_report : Icons.bug_report_outlined,
-                  onPressed: () => setState(() => _showDebugOverlay = !_showDebugOverlay),
-                ),
-                const SizedBox(height: 15),
-              ],
-            );
-              }),
+              return Column(
+                children: [
+                  ActionButton(
+                    width: 55,
+                    icon: _showDebugOverlay
+                        ? Icons.bug_report
+                        : Icons.bug_report_outlined,
+                    onPressed: () =>
+                        setState(() => _showDebugOverlay = !_showDebugOverlay),
+                  ),
+                  const SizedBox(height: 15),
+                ],
+              );
+            },
+          ),
 
           ActionButton(
             width: 55,
@@ -472,9 +487,11 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           const SizedBox(height: 15),
           ActionButton(
             width: 55,
-            icon: _isIgnoringDecimals ? Icons.onetwothree : Icons.onetwothree_outlined,
+            icon: _isIgnoringDecimals
+                ? Icons.onetwothree
+                : Icons.onetwothree_outlined,
             onPressed: _toggleIgnoreDecimalsMode,
-          )
+          ),
         ],
       ),
     );
@@ -526,7 +543,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
               child: TextField(
                 controller: _manualPriceController,
                 focusNode: _manualFocusNode,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 textAlign: TextAlign.left,
                 style: textStyle,
                 cursorColor: Colors.white,
@@ -554,7 +573,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   Widget _buildFeedbackAndHowie(double keyboardHeight) {
     final double manualOffset = _isCalculatingManually ? -10 : 0;
     return Positioned(
-      bottom: (_originalValue != null ? 190 : 40) + keyboardHeight + manualOffset,
+      bottom:
+          (_originalValue != null ? 190 : 40) + keyboardHeight + manualOffset,
       left: 0,
       right: 0,
       child: Column(
@@ -568,8 +588,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                   message: _isCalculatingManually
                       ? "Solo escríbelo y listo"
                       : _isIgnoringDecimals
-                          ? "A veces es más simple, ¿cierto?"
-                          : (_feedbackService.message ?? "¡Hola! Apunta a un precio para empezar"),
+                      ? "A veces es más simple, ¿cierto?"
+                      : (_feedbackService.message ??
+                            "¡Hola! Apunta a un precio para empezar"),
                   direction: BubbleDirection.bottom,
                 );
               },
@@ -605,4 +626,3 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     );
   }
 }
-
