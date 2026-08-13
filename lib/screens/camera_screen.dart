@@ -5,7 +5,9 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:provider/provider.dart';
 import 'package:howmuch/logic/price_interpreter.dart';
+import 'package:howmuch/logic/debug_state.dart';
 import 'package:howmuch/providers/app_provider.dart';
 import 'package:howmuch/services/camera_service.dart';
 import 'package:howmuch/services/feedback_service.dart';
@@ -17,7 +19,6 @@ import 'package:howmuch/widgets/dashed_rect_painter.dart';
 import 'package:howmuch/widgets/debug_overlay_painter.dart';
 import 'package:howmuch/widgets/howie.dart';
 import 'package:howmuch/widgets/price_card.dart';
-import 'package:provider/provider.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -55,6 +56,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   bool _isIgnoringDecimals = false;
 
   // State: Debug Overlay
+  bool get _isDevModeActive => DebugState.instance.isDebugEnabled;
   bool _showDebugOverlay = false;
   List<({String text, Rect rect})> _frameDetections = [];
   double _scale = 1.0;
@@ -278,7 +280,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           _buildIntegerModeIndicator(),
           _buildManualModeIndicator(),
           _buildActionButtons(),
-          if (_showDebugOverlay) _buildDebugOverlay(),
+          if (_isDevModeActive && _showDebugOverlay) _buildDebugOverlay(),
           if (_isCalculatingManually) _buildManualInputField(),
           _buildFeedbackAndHowie(keyboardHeight),
           if (_originalValue != null) _buildPriceResult(provider, keyboardHeight),
@@ -445,12 +447,23 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       right: 20,
       child: Column(
         children: [
-          // ActionButton(
-          //   width: 55,
-          //   icon: _showDebugOverlay ? Icons.bug_report : Icons.bug_report_outlined,
-          //   onPressed: () => setState(() => _showDebugOverlay = !_showDebugOverlay),
-          // ),
-          // const SizedBox(height: 15),
+          ListenableBuilder(
+              listenable: DebugState.instance,
+              builder: (context, child){
+                if(!_isDevModeActive) return const SizedBox.shrink();
+
+            return Column(
+              children: [
+                ActionButton(
+                  width: 55,
+                  icon: _showDebugOverlay ? Icons.bug_report : Icons.bug_report_outlined,
+                  onPressed: () => setState(() => _showDebugOverlay = !_showDebugOverlay),
+                ),
+                const SizedBox(height: 15),
+              ],
+            );
+              }),
+
           ActionButton(
             width: 55,
             icon: _isCalculatingManually ? Icons.edit : Icons.edit_outlined,
