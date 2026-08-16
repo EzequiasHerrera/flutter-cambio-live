@@ -9,21 +9,20 @@ class PriceGroupsLogic {
 
   /// Groups detected text lines into potential price candidates based on spatial proximity
   /// and common price fragmentation patterns.
-  static List<List<TextLine>> groupPricesByLeader(List<TextLine> linesInRoi) {
+  static List<List<TextLine>> groupPricesByLeader(List<TextLine> linesInRoi, {bool ignoreDecimals = false}) {
     // 1. Filter out lines that don't contain numbers
     final numericLines = _filterNumericLines(linesInRoi);
     if (numericLines.isEmpty) return [];
 
     // 2. Apply grouping strategies
-    final candidates = _processStrategies(numericLines);
+    final candidates = _processStrategies(numericLines, ignoreDecimals: ignoreDecimals);
 
     // 3. Rank candidates (native format and font size)
     return _rankCandidates(candidates);
   }
 
   // --- Private Strategies ---
-
-  static List<List<TextLine>> _processStrategies(List<TextLine> numericLines) {
+  static List<List<TextLine>> _processStrategies(List<TextLine> numericLines, {bool ignoreDecimals = false}) {
     final List<List<TextLine>> lot = [];
 
     for (final TextLine baseLine in numericLines) {
@@ -35,10 +34,11 @@ class PriceGroupsLogic {
       if (_evaluatePerfectFormat(cleanText, baseLine, lot)) continue;
 
       // Case B: Pure digits that look like they need splitting (e.g., "100099" -> "1000.99")
-      if (_evaluateFracture(pureDigits, baseLine, lot)) continue;
+      // Skip this fracture logic if we are in "Ignoring Decimals" mode to avoid turning "234" into "2"
+      if (!ignoreDecimals && _evaluateFracture(pureDigits, baseLine, lot)) continue;
 
       // Case C: Look for nearby cent decimals (Case "99" near "10")
-      _evaluateProximity(baseLine, numericLines, lot);
+      _evaluateProximity(baseLine, numericLines, lot, ignoreDecimals: ignoreDecimals);
     }
 
     return lot;
@@ -48,6 +48,7 @@ class PriceGroupsLogic {
     return lines.where((line) => _rxHasNumbers.hasMatch(line.text)).toList();
   }
 
+  // Strategies
   static bool _evaluatePerfectFormat(String cleanText, TextLine baseLine, List<List<TextLine>> lot) {
     if (_rxPerfectFormat.hasMatch(cleanText)) {
       lot.add([baseLine]);
@@ -71,11 +72,14 @@ class PriceGroupsLogic {
     return false;
   }
 
-  static void _evaluateProximity(TextLine baseLine, List<TextLine> numericLines, List<List<TextLine>> lot) {
+  static void _evaluateProximity(TextLine baseLine, List<TextLine> numericLines, List<List<TextLine>> lot, {bool ignoreDecimals = false}) {
     final List<TextLine> neighbors = numericLines.where((candidate) {
       if (candidate == baseLine) return false;
 
       final candDigits = candidate.text.replaceAll(_rxOnlyDigits, '');
+      // If ignoring decimals, we don't expect 2-digit cent neighbors to join as decimals
+      if (ignoreDecimals) return false;
+
       if (candDigits.length != 2) return false;
 
       // Calculate horizontal centers

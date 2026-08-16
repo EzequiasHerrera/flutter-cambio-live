@@ -2,7 +2,6 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:howmuch/logic/price_clean.dart';
 import 'package:howmuch/logic/price_complete_analyzer.dart';
 import 'package:howmuch/logic/price_groups_logic.dart';
 import 'package:howmuch/logic/price_roi_filter.dart';
@@ -40,7 +39,7 @@ class PriceInterpreter {
     final double offsetX = ((imgWidth * scale) - screenSize.width) / 2;
     final double offsetY = ((imgHeight * scale) - screenSize.height) / 2;
 
-    // 2. Spatial Filtering (ROI)
+    // 2. Spatial Filtering (ROI) ✅
     final List<TextLine> linesInRoi = PriceRoiFilter.filterPricesOnROI(
       text,
       roi,
@@ -55,8 +54,10 @@ class PriceInterpreter {
     }
 
     // 3. Grouping Logic
-    final List<List<TextLine>> groupedCandidates =
-        PriceGroupsLogic.groupPricesByLeader(linesInRoi);
+    final List<List<TextLine>> groupedCandidates = PriceGroupsLogic.groupPricesByLeader(
+      linesInRoi,
+      ignoreDecimals: ignoreDecimals,
+    );
 
     // 4. Analysis and Extraction
     final result = PriceCompleteAnalyzer.analyzeAndExtract(
