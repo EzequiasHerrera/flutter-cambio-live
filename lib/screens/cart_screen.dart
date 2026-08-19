@@ -10,8 +10,24 @@ import 'package:howmuch/models/cart_item.dart';
 import 'package:howmuch/widgets/bubble_dialog.dart';
 import 'package:howmuch/services/feedback_service.dart';
 
-class CartScreen extends StatelessWidget {
+import '../widgets/howie_barriendo.dart';
+
+class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  int _tapCount = 0;
+
+  void _incrementCounter() {
+    setState(() {
+      _tapCount++;
+    });
+    FeedbackService.light();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,19 +41,39 @@ class CartScreen extends StatelessWidget {
             return Center(
               child: Transform.translate(
                 offset: const Offset(0, -100),
-                child: const Column(
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    BubbleDialog(
-                      message: 'El carrito está vacío 🛒',
+                    const BubbleDialog(
+                      message: 'Bien limpio, sin nada 🛒',
                       direction: BubbleDirection.bottom,
                     ),
                     const SizedBox(height: 20),
-                    const SizedBox(
-                      height: 200,
-                      child: Howie(),
+                    SizedBox(
+                      height: 180,
+                      child: HowieBarriendo(
+                        onTap: _incrementCounter,
+                      ),
                     ),
+                    if (_tapCount > 0) ...[
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '$_tapCount',
+                            style: TextStyle(
+                              fontSize: 80,
+                              fontWeight: FontWeight.w900,
+                              color: colorScheme.primary.withOpacity(0.2),
+                              letterSpacing: -2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
