@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:howmuch/models/currency.dart';
 import 'package:howmuch/providers/app_provider.dart';
+import 'package:howmuch/services/storage_service.dart';
 import 'package:howmuch/theme/app_theme.dart';
 import 'package:howmuch/widgets/action_button.dart';
 import 'package:howmuch/widgets/currency_card.dart';
@@ -12,8 +13,42 @@ import 'package:howmuch/widgets/swap_button.dart';
 import 'package:howmuch/widgets/currency_search_sheet.dart';
 import 'package:provider/provider.dart';
 
-class HomeScreen extends StatelessWidget {
+import '../widgets/tutorial.dart';
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // 1. Acá declarás las keys de los botones que vas a resaltar
+  final GlobalKey _keyConvertidor = GlobalKey();
+  final GlobalKey _keyHowie = GlobalKey();
+  final StorageService _storageService = StorageService();
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 2. Ejecutamos la verificación apenas se termina de dibujar la pantalla
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkTutorial();
+    });
+  }
+
+  Future<void> _checkTutorial() async {
+    bool hasSeen = await _storageService.hasSeenTutorial();
+    if (!hasSeen && mounted) {
+      Tutorial.show(
+        context: context,
+        keyConvertidor: _keyConvertidor,
+        keyHowie: _keyHowie,
+      );
+      await _storageService.setTutorialAsSeen();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +62,17 @@ class HomeScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (provider.errorMessage != null && provider.availableCurrencies.isEmpty) {
+          if (provider.errorMessage != null &&
+              provider.availableCurrencies.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.cloud_off_rounded, size: 64, color: Colors.grey),
+                  const Icon(
+                    Icons.cloud_off_rounded,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(height: 16),
                   Text(provider.errorMessage!),
                   const SizedBox(height: 16),
@@ -60,7 +100,10 @@ class HomeScreen extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 16),
                         child: Text(
                           provider.errorMessage!,
-                          style: const TextStyle(color: Colors.red, fontSize: 12),
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -78,44 +121,47 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildHeader() {
-    return LayoutBuilder(builder: (context, constraints) {
-      final bool isSmallScreen = constraints.maxWidth < 360;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isSmallScreen = constraints.maxWidth < 360;
 
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: isSmallScreen ? 120 : 160,
-            height: isSmallScreen ? 150 : 200,
-            child: const Howie(),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '¿Vamos de compras? 🛍️',
-                  style: TextStyle(
-                    fontSize: isSmallScreen ? 16 : 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Convertí precios en segundos y descubrí cuánto cuestan realmente.',
-                  style: TextStyle(
-                    fontSize: isSmallScreen ? 12 : 14,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          key: _keyHowie,
+          children: [
+            SizedBox(
+              width: isSmallScreen ? 120 : 160,
+              height: isSmallScreen ? 150 : 200,
+              child: const Howie(),
             ),
-          ),
-        ],
-      );
-    });
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '¿Vamos de compras? 🛍️',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 16 : 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Convertí precios en segundos y descubrí cuánto cuestan realmente.',
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 12 : 14,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildConverterCard(
@@ -125,18 +171,19 @@ class HomeScreen extends StatelessWidget {
   ) {
     final double unitRate = provider.convert(1.0);
     final String baseCode = provider.baseCurrency?.code ?? '';
-    final String targetCode =
-        provider.useCustomCurrency ? provider.customName : (provider.targetCurrency?.code ?? '');
+    final String targetCode = provider.useCustomCurrency
+        ? provider.customName
+        : (provider.targetCurrency?.code ?? '');
 
     return Container(
+      key: _keyConvertidor,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: colorScheme.outlineVariant.withOpacity(0.5),
-          ),
-          boxShadow: [AppTheme.getHardShadow(colorScheme)]),
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.5)),
+        boxShadow: [AppTheme.getHardShadow(colorScheme)],
+      ),
       child: Column(
         children: [
           Stack(
@@ -174,7 +221,11 @@ class HomeScreen extends StatelessWidget {
   }) {
     return InkWell(
       onTap: () async {
-        final selected = await CurrencySearchSheet.show(context, items, 'Seleccionar Moneda');
+        final selected = await CurrencySearchSheet.show(
+          context,
+          items,
+          'Seleccionar Moneda',
+        );
         if (selected != null) onChanged(selected);
       },
       borderRadius: BorderRadius.circular(16),
@@ -189,10 +240,16 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text(
                   '${value.code} - ${value.name}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ] else
-                const Text('Seleccionar...', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Seleccionar...',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               const Spacer(),
               const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey),
             ],
@@ -244,16 +301,27 @@ class HomeScreen extends StatelessWidget {
                     : Row(
                         children: [
                           if (provider.targetCurrency != null) ...[
-                            CurrencyIcon(currencyCode: provider.targetCurrency!.code),
+                            CurrencyIcon(
+                              currencyCode: provider.targetCurrency!.code,
+                            ),
                             const SizedBox(width: 10),
                             Text(
                               '${provider.targetCurrency!.code} - ${provider.targetCurrency!.name}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
                           ] else
-                            const Text('Seleccionar...', style: TextStyle(fontWeight: FontWeight.bold)),
+                            const Text(
+                              'Seleccionar...',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           const Spacer(),
-                          const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey),
+                          const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(width: 8),
                         ],
                       ),
@@ -265,13 +333,18 @@ class HomeScreen extends StatelessWidget {
                 IconButton(
                   icon: Icon(
                     Icons.edit_rounded,
-                    color: provider.useCustomCurrency ? colorScheme.primary : Colors.grey,
+                    color: provider.useCustomCurrency
+                        ? colorScheme.primary
+                        : Colors.grey,
                   ),
                   onPressed: () => CustomCurrencyDialog.show(context),
                 ),
                 if (provider.useCustomCurrency)
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Colors.redAccent),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.redAccent,
+                    ),
                     onPressed: () => provider.disableCustomCurrency(),
                   ),
               ],
@@ -293,10 +366,7 @@ class HomeScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.tertiaryContainer,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.tertiary.withAlpha(50),
-          width: 1,
-        ),
+        border: Border.all(color: colorScheme.tertiary.withAlpha(50), width: 1),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -375,11 +445,7 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          ActionButton(
-            icon: icon,
-            onPressed: onPressed,
-            isPrimary: isPrimary,
-          ),
+          ActionButton(icon: icon, onPressed: onPressed, isPrimary: isPrimary),
         ],
       ),
     );
