@@ -3,6 +3,8 @@ import 'package:flutter_svg/svg.dart';
 import 'package:howmuch/widgets/bubble_dialog.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
+import 'howie_greetings.dart';
+
 class Tutorial {
   // Un metodo estático para no tener que instanciar la clase
   static void show({
@@ -32,10 +34,11 @@ class Tutorial {
                   direction: BubbleDirection.bottom,
                 ),
                 const SizedBox(height: 20),
-                SvgPicture.asset(
-                  'assets/images/howie_greetings.svg',
-                  height: 200,
-                ),
+                const HowieGreetings(),
+                // SvgPicture.asset(
+                //   'assets/images/howie_greetings.svg',
+                //   height: 200,
+                // ),
               ],
             ),
           ),
@@ -61,10 +64,11 @@ class Tutorial {
                   direction: BubbleDirection.bottom,
                 ),
                 const SizedBox(height: 20),
-                SvgPicture.asset(
-                  'assets/images/howie_greetings.svg',
-                  height: 200,
-                ),
+                const HowieGreetings(),
+                // SvgPicture.asset(
+                //   'assets/images/howie_greetings.svg',
+                //   height: 200,
+                // ),
               ],
             ),
           ),
