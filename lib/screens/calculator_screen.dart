@@ -8,6 +8,9 @@ import 'package:howmuch/widgets/howie.dart';
 import 'package:howmuch/widgets/custom_app_bar.dart';
 import 'package:howmuch/widgets/price_card.dart';
 
+import '../services/storage_service.dart';
+import '../widgets/tutorial.dart';
+
 class CalculatorScreen extends StatefulWidget {
   const CalculatorScreen({super.key});
 
@@ -16,8 +19,12 @@ class CalculatorScreen extends StatefulWidget {
 }
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
-  final TextEditingController _controller = TextEditingController();
+  //Conversor Tutorial Keys
+  final GlobalKey _keyInputManual = GlobalKey();
+  final StorageService _storageService = StorageService();
   final FocusNode _focusNode = FocusNode();
+
+  final TextEditingController _controller = TextEditingController();
   double? _val;
   double? _conv;
   String _txt = "";
@@ -25,10 +32,25 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   @override
   void initState() {
     super.initState();
-    // Auto focus on start
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _focusNode.requestFocus();
+      _focusNode.requestFocus(); //Open Keyboard
+      _checkTutorial();
     });
+  }
+
+  Future<void> _checkTutorial() async {
+    bool hasSeen = await _storageService.hasSeenTutorial(StorageService.keyHasSeenConverterTutorial);
+
+    if (!hasSeen && mounted){
+      Tutorial.show(
+        context: context,
+        targets: Tutorial.conversorTargets(keyInput: _keyInputManual),
+        onFinish: () {
+          _storageService.setTutorialAsSeen(StorageService.keyHasSeenConverterTutorial);
+        },
+      );
+    }
   }
 
   @override
@@ -69,11 +91,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     return Scaffold(
       appBar: const CustomAppBar(showCart: true),
       backgroundColor: colorScheme.surface,
-      // Dejamos que el Scaffold maneje el ajuste del teclado automáticamente
       resizeToAvoidBottomInset: true,
       body: Column(
         children: [
-          // 1. Howie y su mensaje: Fijos en la parte superior
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
             child: Row(
@@ -94,7 +114,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
             ),
           ),
 
-          // 2. Área scrollable para el input y la tarjeta
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -103,6 +122,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 children: [
                   // Entrada de precio
                   Container(
+                    key: _keyInputManual,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
                       color: colorScheme.surface,

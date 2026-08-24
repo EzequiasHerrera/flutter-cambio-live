@@ -5,6 +5,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:howmuch/services/storage_service.dart';
 import 'package:provider/provider.dart';
 import 'package:howmuch/logic/price_interpreter.dart';
 import 'package:howmuch/logic/debug_state.dart';
@@ -19,6 +20,7 @@ import 'package:howmuch/widgets/dashed_rect_painter.dart';
 import 'package:howmuch/widgets/debug_overlay_painter.dart';
 import 'package:howmuch/widgets/howie.dart';
 import 'package:howmuch/widgets/price_card.dart';
+import 'package:howmuch/widgets/tutorial.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -34,6 +36,7 @@ class _CameraScreenState extends State<CameraScreen>
   final OCRService _ocr = OCRService();
   final PriceInterpreter _priceInterpreter = PriceInterpreter();
   final FeedbackService _feedbackService = FeedbackService();
+  final StorageService _storageService = StorageService();
 
   // UI Controllers
   final TextEditingController _manualPriceController = TextEditingController();
@@ -68,11 +71,38 @@ class _CameraScreenState extends State<CameraScreen>
   static const double _roiWidth = 300;
   static const double _roiHeight = 180;
 
+  // Tutorial Keys
+  final GlobalKey _keyROI = GlobalKey();
+  final GlobalKey _keyHowie = GlobalKey();
+  final GlobalKey _keyCamManualInputButton = GlobalKey();
+  final GlobalKey _keyCamEnterosButton = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initializeCamera();
+  }
+
+  Future<void> _checkTutorial() async {
+    bool hasSeen = await _storageService
+        .hasSeenTutorial(StorageService.keyHasSeenCameraTutorial);
+
+    if (!hasSeen && mounted) {
+      Tutorial.show(
+        context: context,
+        targets: Tutorial.cameraTargets(
+          keyROI: _keyROI,
+          keyHowie: _keyHowie,
+          keyManual: _keyCamManualInputButton,
+          keyEnteros: _keyCamEnterosButton,
+        ),
+        onFinish: () {
+          _storageService
+              .setTutorialAsSeen(StorageService.keyHasSeenCameraTutorial);
+        },
+      );
+    }
   }
 
   @override
@@ -110,6 +140,9 @@ class _CameraScreenState extends State<CameraScreen>
 
       if (mounted) {
         setState(() {});
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _checkTutorial();
+        });
       }
     } catch (e) {
       debugPrint("Error initializing camera: $e");
@@ -443,6 +476,7 @@ class _CameraScreenState extends State<CameraScreen>
         ),
         Center(
           child: CustomPaint(
+            key: _keyROI,
             size: const Size(_roiWidth, _roiHeight),
             painter: DashedRectPainter(),
           ),
@@ -480,12 +514,14 @@ class _CameraScreenState extends State<CameraScreen>
           ),
 
           ActionButton(
+            key: _keyCamManualInputButton,
             width: 55,
             icon: _isCalculatingManually ? Icons.edit : Icons.edit_outlined,
             onPressed: _toggleManualMode,
           ),
           const SizedBox(height: 15),
           ActionButton(
+            key: _keyCamEnterosButton,
             width: 55,
             icon: _isIgnoringDecimals
                 ? Icons.onetwothree
@@ -597,7 +633,7 @@ class _CameraScreenState extends State<CameraScreen>
             ),
           ),
           const SizedBox(height: 0),
-          const SizedBox(height: 200, child: Howie()),
+          SizedBox(height: 200, child: Howie(key: _keyHowie)),
         ],
       ),
     );

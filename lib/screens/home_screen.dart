@@ -23,31 +23,38 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // 1. Acá declarás las keys de los botones que vas a resaltar
-  final GlobalKey _keyConvertidor = GlobalKey();
-  final GlobalKey _keyHowie = GlobalKey();
+  // Home Tutorial Keys
+  final GlobalKey _keyWelcome = GlobalKey();
+  final GlobalKey _keyCurrencySelector = GlobalKey();
+  final GlobalKey _keyCustomCurrencyButton = GlobalKey();
+  final GlobalKey _keyBottomMenuButtons = GlobalKey();
   final StorageService _storageService = StorageService();
 
   @override
   void initState() {
     super.initState();
-
-    // 2. Ejecutamos la verificación apenas se termina de dibujar la pantalla
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkTutorial();
     });
   }
 
   Future<void> _checkTutorial() async {
-    bool hasSeen = await _storageService.hasSeenTutorial();
+    bool hasSeen = await _storageService.hasSeenTutorial(StorageService.keyHasSeenHomeTutorial);
+
     if (!hasSeen && mounted) {
       Tutorial.show(
         context: context,
-        keyConvertidor: _keyConvertidor,
-        keyHowie: _keyHowie,
+        targets: Tutorial.homeTargets(
+          keyHowie: _keyWelcome,
+          keyConvertidor: _keyCurrencySelector,
+          keyCustom: _keyCustomCurrencyButton,
+          keyMenu: _keyBottomMenuButtons,
+        ),
       );
-      await _storageService.setTutorialAsSeen();
+
+      await _storageService.setTutorialAsSeen(StorageService.keyHasSeenHomeTutorial);
     }
+
   }
 
   @override
@@ -127,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.center,
-          key: _keyHowie,
+          key: _keyWelcome,
           children: [
             SizedBox(
               width: isSmallScreen ? 120 : 160,
@@ -176,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
         : (provider.targetCurrency?.code ?? '');
 
     return Container(
-      key: _keyConvertidor,
+      key: _keyCurrencySelector,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
@@ -331,6 +338,7 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
+                  key: _keyCustomCurrencyButton,
                   icon: Icon(
                     Icons.edit_rounded,
                     color: provider.useCustomCurrency
@@ -392,6 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildActionButtons(BuildContext context) {
     return SafeArea(
       child: Padding(
+        key: _keyBottomMenuButtons,
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,

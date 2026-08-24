@@ -11,6 +11,7 @@ import 'package:howmuch/widgets/bubble_dialog.dart';
 import 'package:howmuch/services/feedback_service.dart';
 
 import '../widgets/howie_barriendo.dart';
+import '../widgets/tutorial.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -21,6 +22,30 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   int _tapCount = 0;
+  final GlobalKey _keyCartList = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkTutorial();
+    });
+  }
+
+  Future<void> _checkTutorial() async {
+    final StorageService storageService = StorageService();
+    bool hasSeen = await storageService.hasSeenTutorial(StorageService.keyHasSeenCartTutorial);
+
+    if (!hasSeen && mounted) {
+      Tutorial.show(
+        context: context,
+        targets: Tutorial.cartTargets(keyList: _keyCartList),
+        onFinish: () {
+          storageService.setTutorialAsSeen(StorageService.keyHasSeenCartTutorial);
+        },
+      );
+    }
+  }
 
   void _incrementCounter() {
     setState(() {
@@ -85,6 +110,7 @@ class _CartScreenState extends State<CartScreen> {
               _buildHeader(),
               Expanded(
                 child: ListView.builder(
+                  key: _keyCartList,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: provider.cart.length,
                   itemBuilder: (context, index) {

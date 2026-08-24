@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum BubbleDirection { left, right, bottom }
+enum BubbleDirection { left, right, bottom, middlebottom, top }
 
 class BubbleDialog extends StatelessWidget {
   final String message;
@@ -14,8 +14,6 @@ class BubbleDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     if (message.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -23,6 +21,9 @@ class BubbleDialog extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.75,
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -51,38 +52,38 @@ class BubbleDialog extends StatelessWidget {
   }
 
   Widget _buildTriangle() {
-    double? left, right, top, bottom;
+    Widget triangle = CustomPaint(
+      painter: TrianglePainter(
+        strokeColor: Colors.transparent,
+        fillColor: Colors.white,
+        strokeWidth: 0,
+        direction: direction,
+      ),
+      size: const Size(12, 12),
+    );
 
     switch (direction) {
       case BubbleDirection.left:
-        left = -10;
-        top = 20;
-        break;
+        return Positioned(left: -10, top: 20, child: triangle);
       case BubbleDirection.right:
-        right = -10;
-        top = 20;
-        break;
+        return Positioned(right: -10, top: 20, child: triangle);
+      case BubbleDirection.top:
+        return Positioned(
+          top: -10,
+          left: 0,
+          right: 0,
+          child: Center(child: triangle),
+        );
       case BubbleDirection.bottom:
-        bottom = -10;
-        left = 60;
-        break;
+        return Positioned(bottom: -10, left: 0, right: 0, child: Center(child: triangle));
+      case BubbleDirection.middlebottom:
+        return Positioned(
+          bottom: -10,
+          left: 0,
+          right: 0,
+          child: Center(child: triangle),
+        );
     }
-
-    return Positioned(
-      left: left,
-      right: right,
-      top: top,
-      bottom: bottom,
-      child: CustomPaint(
-        painter: TrianglePainter(
-          strokeColor: Colors.transparent,
-          fillColor: Colors.white,
-          strokeWidth: 0,
-          direction: direction,
-        ),
-        size: const Size(12, 12),
-      ),
-    );
   }
 }
 
@@ -114,7 +115,17 @@ class TrianglePainter extends CustomPainter {
         path.lineTo(size.width, size.height / 2);
         path.lineTo(0, size.height);
         break;
+      case BubbleDirection.top:
+        path.moveTo(0, size.height);
+        path.lineTo(size.width / 2, 0);
+        path.lineTo(size.width, size.height);
+        break;
       case BubbleDirection.bottom:
+        path.moveTo(0, 0);
+        path.lineTo(size.width / 2, size.height);
+        path.lineTo(size.width, 0);
+        break;
+      case BubbleDirection.middlebottom:
         path.moveTo(0, 0);
         path.lineTo(size.width / 2, size.height);
         path.lineTo(size.width, 0);
