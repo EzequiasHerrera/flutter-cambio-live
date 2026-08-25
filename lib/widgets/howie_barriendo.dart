@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import '../services/feedback_service.dart';
 
 class HowieBarriendo extends StatefulWidget {
   final VoidCallback? onTap;
@@ -13,24 +12,13 @@ class HowieBarriendo extends StatefulWidget {
 class _HowieState extends State<HowieBarriendo>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-
   int _paso = 0;
-
   LottieComposition? _composition;
-
-  // ============================================================
-  // VELOCIDAD
-  // ============================================================
-
-  final double factorVelocidad = 0.05;
 
   @override
   void initState() {
     super.initState();
-
-    _controller = AnimationController(
-      vsync: this,
-    );
+    _controller = AnimationController(vsync: this);
   }
 
   @override
@@ -39,116 +27,40 @@ class _HowieState extends State<HowieBarriendo>
     super.dispose();
   }
 
-  // ============================================================
-  // CALCULAR DURACIÓN DE UN TRAMO
-  // ============================================================
-
-  Duration _calcularDuracionTramo(
-      double framesATransicionar,
-      double totalFrames,
-      ) {
-    if (_composition == null) {
-      return Duration.zero;
-    }
-
-    final double proporcion =
-        framesATransicionar / totalFrames;
-
-    final int msBase =
-        _composition!.duration.inMilliseconds;
-
-    final int msCalculados =
-    ((msBase * proporcion) / factorVelocidad).round();
-
-    return Duration(
-      milliseconds: msCalculados,
-    );
-  }
-
-  // ============================================================
-  // ANIMACIÓN
-  // ============================================================
-
   Future<void> _avanzarAnimacion() async {
-    if (_composition == null) {
-      return;
-    }
+    if (_composition == null || _controller.isAnimating) return;
 
-    // Evita otro tap mientras está reproduciendo.
-    if (_controller.isAnimating) {
-      return;
-    }
-
-    // Llamamos al callback si existe
     widget.onTap?.call();
 
-    final double totalFrames =
-        _composition!.endFrame;
-
-    // ==========================================================
-    // PASO 0
-    //
-    // Primer tap:
-    //
-    // FRAME 0 → FRAME 26
-    // ==========================================================
+    final double totalFrames = _composition!.endFrame;
+    if (totalFrames == 0) return;
 
     if (_paso == 0) {
+      // FRAME 0 → FRAME 26
       const double frameInicio = 0.0;
       const double frameFinal = 26.0;
+      final double framesATransicionar = frameFinal - frameInicio;
 
-      final double framesATransicionar =
-          frameFinal - frameInicio;
+      // Duración proporcional precisa basada en la duración REAL del asset
+      final Duration duracion = _composition!.duration * (framesATransicionar / totalFrames);
 
-      final Duration duracion =
-      _calcularDuracionTramo(
-        framesATransicionar,
-        totalFrames,
-      );
-
-      setState(() {
-        _paso = 1;
-      });
+      setState(() => _paso = 1);
 
       await _controller.animateTo(
         frameFinal / totalFrames,
         duration: duracion,
         curve: Curves.linear,
       );
-
       return;
     }
 
-    // ==========================================================
-    // PASO 1
-    //
-    // Segundo tap:
-    //
-    // FRAME 26 → FRAME 31
-    //
-    // Usamos EASE OUT:
-    //
-    // empieza normal
-    // ↓
-    // desacelera
-    // ↓
-    // llega suavemente al final
-    //
-    // Sin overshoot / rebote.
-    // ==========================================================
-
     if (_paso == 1) {
+      // FRAME 26 → FRAME 31
       const double frameInicio = 26.0;
       const double frameFinal = 31.0;
+      final double framesATransicionar = frameFinal - frameInicio;
 
-      final double framesATransicionar =
-          frameFinal - frameInicio;
-
-      final Duration duracion =
-      _calcularDuracionTramo(
-        framesATransicionar,
-        totalFrames,
-      );
+      final Duration duracion = _composition!.duration * (framesATransicionar / totalFrames);
 
       await _controller.animateTo(
         frameFinal / totalFrames,
@@ -156,23 +68,14 @@ class _HowieState extends State<HowieBarriendo>
         curve: Curves.easeOut,
       );
 
-      // ========================================================
-      // VOLVER AL ESTADO INICIAL
-      // ========================================================
-
+      // Reset al estado inicial
       _controller.value = 0.0;
 
       if (mounted) {
-        setState(() {
-          _paso = 0;
-        });
+        setState(() => _paso = 0);
       }
     }
   }
-
-  // ============================================================
-  // UI
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -184,11 +87,7 @@ class _HowieState extends State<HowieBarriendo>
         fit: BoxFit.cover,
         onLoaded: (composition) {
           _composition = composition;
-
-          _controller.duration =
-              composition.duration;
-
-          // Estado inicial.
+          _controller.duration = composition.duration;
           _controller.value = 0.0;
         },
       ),

@@ -9,6 +9,7 @@ import 'package:howmuch/providers/app_provider.dart';
 import 'package:howmuch/models/cart_item.dart';
 import 'package:howmuch/widgets/bubble_dialog.dart';
 import 'package:howmuch/services/feedback_service.dart';
+import 'package:howmuch/services/storage_service.dart';
 
 import '../widgets/howie_barriendo.dart';
 import '../widgets/tutorial.dart';
