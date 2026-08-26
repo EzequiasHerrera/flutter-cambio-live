@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:howmuch/widgets/action_button.dart';
 import 'package:howmuch/widgets/bubble_dialog.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'howie_greetings.dart';
@@ -11,77 +12,99 @@ class Tutorial {
   }) {
     if (targets == null || targets.isEmpty) return;
 
-    TutorialCoachMark(
+    late TutorialCoachMark tutorial;
+
+    tutorial = TutorialCoachMark(
       targets: targets,
       colorShadow: Colors.black,
       opacityShadow: 0.8,
-      focusAnimationDuration: const Duration(milliseconds: 600),
+      focusAnimationDuration: const Duration(milliseconds: 800),
       unFocusAnimationDuration: const Duration(milliseconds: 600),
       pulseEnable: false,
+
+      skipWidget: Padding(
+        padding: const EdgeInsets.only(top: 12.0, right: 16.0),
+        child: ActionButton(
+          label: "Omitir",
+          icon: Icons.skip_next_rounded,
+          isPrimary:
+              true, // Secundario para que no compita visualmente con Howie
+          width: 150, // Ancho acotado para el botón flotante
+          onPressed: () {
+            tutorial.skip();
+          },
+        ),
+      ),
+
       onFinish: onFinish,
       onSkip: () {
         onFinish?.call();
         return true;
       },
-    ).show(context: context);
+    );
+
+    tutorial.show(context: context);
   }
 
   static TargetContent howieAndBubbleDialog({
     ContentAlign align = ContentAlign.top,
-    double? howieTop,
-    double? howieBottom,
-    double? howieLeft,
-    double? howieRight,
-    double howieAngle = 0,
-    double howieSize = 0,
-    double? bubbleTop,
-    double? bubbleBottom,
-    double? bubbleLeft,
-    double? bubbleRight,
     bool animation = false,
-    String bubbleText = "No hay texto aún",
+    required String bubbleText,
     BubbleDirection bubbleDirection = BubbleDirection.bottom,
+    double howieSize = 160,
+    double howieAngle = 0,
+    Alignment howieAlignment = Alignment.center,
+    Offset howieOffsetRatio = Offset.zero,
+    Offset bubbleOffsetRatio = Offset.zero,
   }) {
     return TargetContent(
       align: align,
-      child: Builder(builder: (context) {
-        return SizedBox(
-          width: MediaQuery.of(context).size.width,
-          height: 240,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.bottomCenter,
-            children: [
-              if (howieSize > 0)
-                Positioned(
-                  top: howieTop,
-                  bottom: howieBottom,
-                  left: howieLeft,
-                  right: howieRight,
-                  child: Transform.rotate(
-                    angle: howieAngle * (3.1416 / 180),
-                    child: SizedBox(
-                      height: howieSize,
-                      child: animation ? null : const HowieGreetings(),
+      child: Builder(
+        builder: (context) {
+          final size = MediaQuery.of(context).size;
+
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Transform.translate(
+                    offset: Offset(
+                      size.width * bubbleOffsetRatio.dx,
+                      size.height * bubbleOffsetRatio.dy,
+                    ),
+                    child: BubbleDialog(
+                      message: bubbleText,
+                      direction: bubbleDirection,
                     ),
                   ),
                 ),
-              Positioned(
-                top: bubbleTop,
-                bottom: bubbleBottom,
-                left: bubbleLeft ?? 20,
-                right: bubbleRight ?? 20,
-                child: Center(
-                  child: BubbleDialog(
-                    message: bubbleText,
-                    direction: bubbleDirection,
+                if (howieSize > 0)
+                  Align(
+                    alignment: howieAlignment,
+                    child: Transform.translate(
+                      offset: Offset(
+                        size.width * howieOffsetRatio.dx,
+                        size.height * howieOffsetRatio.dy,
+                      ),
+                      child: Transform.rotate(
+                        angle: howieAngle * (3.1416 / 180),
+                        child: SizedBox(
+                          height: howieSize.clamp(100.0, size.height * 0.4),
+                          child: animation
+                              ? const SizedBox.shrink()
+                              : const HowieGreetings(),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ],
-          ),
-        );
-      }),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -102,12 +125,11 @@ class Tutorial {
         contents: [
           howieAndBubbleDialog(
             align: ContentAlign.bottom,
-            howieBottom: 0,
-            howieSize: 220,
-            bubbleBottom: 225,
+            howieAlignment: Alignment.center,
+            howieSize: 180,
             bubbleText:
                 "¡Bienvenido a Howmuch! Soy Howie, te voy a mostrar el lugar. Preparado? 🧡✈️",
-            bubbleDirection: BubbleDirection.top,
+            bubbleDirection: BubbleDirection.middlebottom,
           ),
         ],
       ),
@@ -120,13 +142,14 @@ class Tutorial {
         contents: [
           howieAndBubbleDialog(
             align: ContentAlign.top,
-            howieBottom: -120,
-            howieRight: 310,
+            howieAlignment: Alignment.bottomLeft,
+            howieOffsetRatio: const Offset(-0.18, 0.18),
             howieAngle: 45,
-            howieSize: 200,
-            bubbleBottom: 20,
-            bubbleText: "Elegí la moneda origen y a la que querés convertir 💱🪙",
-            bubbleDirection: BubbleDirection.middlebottom,
+            howieSize: 160,
+            bubbleText:
+                "Elegí la moneda origen y a la que querés convertir 💱🪙",
+            bubbleDirection: BubbleDirection.bottomLeft,
+            bubbleOffsetRatio: Offset(0.0, 0.2),
           ),
         ],
       ),
@@ -137,11 +160,8 @@ class Tutorial {
         contents: [
           howieAndBubbleDialog(
             align: ContentAlign.top,
-            howieBottom: -120,
-            howieRight: 310,
-            howieAngle: 45,
-            howieSize: 200,
-            bubbleBottom: 20,
+            howieAlignment: Alignment.bottomCenter,
+            howieSize: 160,
             bubbleText:
                 "No encontrás tu moneda? Creala y asignale un valor personalizado. Sin sorpresas! ⭐️",
             bubbleDirection: BubbleDirection.middlebottom,
@@ -157,12 +177,10 @@ class Tutorial {
         contents: [
           howieAndBubbleDialog(
             align: ContentAlign.top,
-            howieBottom: -40,
-            howieRight: 140,
-            howieSize: 180,
-            bubbleBottom: 20,
+            howieAlignment: Alignment.bottomCenter,
+            howieSize: 160,
             bubbleText:
-                "Este es el navegador hacia el conversor manual 💱, tu carrito de compras 🛒 o directo a la camara 📷",
+                "Este es el navegador hacia el conversor manual 💱, tu carrito de compras 🛒 o directo a la cámara 📷",
             bubbleDirection: BubbleDirection.middlebottom,
           ),
         ],
@@ -182,13 +200,13 @@ class Tutorial {
         contents: [
           howieAndBubbleDialog(
             align: ContentAlign.top,
-            howieBottom: -40,
-            howieRight: 140,
-            howieSize: 150,
-            bubbleBottom: 20,
+            howieAlignment: Alignment.bottomCenter,
+            howieOffsetRatio: Offset(0.0, 0.05),
+            howieSize: 160,
             bubbleText:
-                "Si te va mas la onda retro, podés escribir el precio acá y te lo convierto en el momento, viejardo. 👴🏻",
+                "Hola viejardo! Te sentís mas a gusto acá? Es todo tuyo 👴🏻",
             bubbleDirection: BubbleDirection.middlebottom,
+            bubbleOffsetRatio: Offset(0.0, 0.05),
           ),
         ],
       ),
@@ -211,11 +229,14 @@ class Tutorial {
         enableOverlayTab: true,
         contents: [
           howieAndBubbleDialog(
-            align: ContentAlign.bottom,
-            bubbleBottom: 225,
+            align: ContentAlign.top,
+            howieSize: 160, // Si no se necesita a Howie en este paso
+            howieOffsetRatio: Offset(-0.45, 0.1),
+            howieAngle: 50,
             bubbleText:
-                "Enmarcar el precio con este cuadro para detectarlo automáticamente 🔍",
-            bubbleDirection: BubbleDirection.top,
+                "Colocá el precio dentro del recuadro para detectarlo automáticamente 🔍",
+            bubbleDirection: BubbleDirection.bottomLeft,
+            bubbleOffsetRatio: Offset(0.0, 0.15),
           ),
         ],
       ),
@@ -226,9 +247,10 @@ class Tutorial {
         contents: [
           howieAndBubbleDialog(
             align: ContentAlign.left,
+            howieSize: 160,
             bubbleText:
-                "¿No lo toma? Usá el ingreso manual rápido sin salir de la cámara ✍️",
-            bubbleDirection: BubbleDirection.right,
+                "Si hay problemas, siempre podés ingresarlo manualmente! ✍️",
+            bubbleDirection: BubbleDirection.middlebottom,
           ),
         ],
       ),
@@ -239,9 +261,10 @@ class Tutorial {
         contents: [
           howieAndBubbleDialog(
             align: ContentAlign.left,
+            howieSize: 160,
             bubbleText:
-                "Si la etiqueta tiene mucho 'ruido', activá el modo SOLO ENTEROS 🚫.00",
-            bubbleDirection: BubbleDirection.right,
+                "Querés un número redondo? Utiliza el modo SOLO ENTEROS ✅",
+            bubbleDirection: BubbleDirection.middlebottom,
           ),
         ],
       ),
@@ -252,8 +275,9 @@ class Tutorial {
         contents: [
           howieAndBubbleDialog(
             align: ContentAlign.top,
-            bubbleBottom: 20,
-            bubbleText: "¡Intenta apuntar a un precio y observa la magia! ✨",
+            howieAlignment: Alignment.center,
+            howieSize: 160,
+            bubbleText: "¡Intentá apuntar a un precio y observa la magia! ✨📷",
             bubbleDirection: BubbleDirection.middlebottom,
           ),
         ],
@@ -272,11 +296,14 @@ class Tutorial {
         enableOverlayTab: true,
         contents: [
           howieAndBubbleDialog(
-            align: ContentAlign.bottom,
-            bubbleBottom: 225,
+            align: ContentAlign.top,
+            howieSize: 300,
+            howieAngle: 160,
+            howieOffsetRatio: Offset(0.0, 0.04),
             bubbleText:
                 "Acá tenés tu lista de compras con el total convertido. ¡Ya sabés cuánto vas a gastar! 🛍️",
             bubbleDirection: BubbleDirection.top,
+            bubbleOffsetRatio: Offset(0.0, 0.55),
           ),
         ],
       ),

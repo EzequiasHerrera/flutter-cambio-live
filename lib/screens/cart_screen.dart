@@ -35,14 +35,18 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> _checkTutorial() async {
     final StorageService storageService = StorageService();
-    bool hasSeen = await storageService.hasSeenTutorial(StorageService.keyHasSeenCartTutorial);
+    bool hasSeen = await storageService.hasSeenTutorial(
+      StorageService.keyHasSeenCartTutorial,
+    );
 
     if (!hasSeen && mounted) {
       Tutorial.show(
         context: context,
         targets: Tutorial.cartTargets(keyList: _keyCartList),
         onFinish: () {
-          storageService.setTutorialAsSeen(StorageService.keyHasSeenCartTutorial);
+          storageService.setTutorialAsSeen(
+            StorageService.keyHasSeenCartTutorial,
+          );
         },
       );
     }
@@ -75,31 +79,28 @@ class _CartScreenState extends State<CartScreen> {
                       message: 'Bien limpio, sin nada 🛒',
                       direction: BubbleDirection.bottom,
                     ),
-                    const SizedBox(height: 20),
                     SizedBox(
                       height: 180,
-                      child: HowieBarriendo(
-                        onTap: _incrementCounter,
-                      ),
+                      child: HowieBarriendo(onTap: _incrementCounter),
                     ),
-                    if (_tapCount > 0) ...[
-                      const SizedBox(height: 10),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 40),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            '$_tapCount',
-                            style: TextStyle(
-                              fontSize: 80,
-                              fontWeight: FontWeight.w900,
-                              color: colorScheme.primary.withOpacity(0.2),
-                              letterSpacing: -2,
-                            ),
+                    const SizedBox(height: 10),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '$_tapCount',
+                          style: TextStyle(
+                            fontSize: 80,
+                            fontWeight: FontWeight.w900,
+                            color: _tapCount > 0
+                                ? colorScheme.primary
+                                : colorScheme.primary.withAlpha(1),
+                            letterSpacing: -2,
                           ),
                         ),
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
@@ -112,7 +113,10 @@ class _CartScreenState extends State<CartScreen> {
               Expanded(
                 child: ListView.builder(
                   key: _keyCartList,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   itemCount: provider.cart.length,
                   itemBuilder: (context, index) {
                     final CartItem item = provider.cart[index];
@@ -139,11 +143,7 @@ class _CartScreenState extends State<CartScreen> {
         children: [
           Transform.translate(
             offset: const Offset(-15, 0),
-            child: const SizedBox(
-              width: 120,
-              height: 140,
-              child: Howie(),
-            ),
+            child: const SizedBox(width: 120, height: 140, child: Howie()),
           ),
           const Expanded(
             child: Column(
@@ -151,10 +151,7 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 Text(
                   'Tus precios guardados 📝',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 4),
                 Text(
@@ -178,15 +175,13 @@ class _CartScreenState extends State<CartScreen> {
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(40),
-        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
         boxShadow: [
           BoxShadow(
             color: colorScheme.shadow.withOpacity(0.12),
             offset: const Offset(0, -10),
             blurRadius: 30,
-          )
+          ),
         ],
         border: Border(
           top: BorderSide(
@@ -237,7 +232,10 @@ class _CartScreenState extends State<CartScreen> {
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: colorScheme.primary,
                     borderRadius: BorderRadius.circular(24),
@@ -246,7 +244,7 @@ class _CartScreenState extends State<CartScreen> {
                         color: colorScheme.shadow,
                         offset: const Offset(0, 4),
                         blurRadius: 0,
-                      )
+                      ),
                     ],
                   ),
                   child: Text(
@@ -275,10 +273,7 @@ class _CartItemWidget extends StatefulWidget {
   final CartItem item;
   final VoidCallback onDelete;
 
-  const _CartItemWidget({
-    required this.item,
-    required this.onDelete,
-  });
+  const _CartItemWidget({required this.item, required this.onDelete});
 
   @override
   State<_CartItemWidget> createState() => _CartItemWidgetState();
@@ -297,15 +292,13 @@ class _CartItemWidgetState extends State<_CartItemWidget> {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(AppTheme.radius),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withOpacity(0.5),
-        ),
+        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.5)),
         boxShadow: [
           BoxShadow(
             color: colorScheme.outlineVariant,
             offset: const Offset(0, 6),
             blurRadius: 0,
-          )
+          ),
         ],
       ),
       child: Padding(
@@ -372,7 +365,9 @@ class _CartItemWidgetState extends State<_CartItemWidget> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    DateFormat('HH:mm - dd/MM/yy').format(widget.item.timestamp),
+                    DateFormat(
+                      'HH:mm - dd/MM/yy',
+                    ).format(widget.item.timestamp),
                     style: TextStyle(
                       fontSize: 10,
                       color: colorScheme.onSurfaceVariant.withOpacity(0.4),
@@ -399,13 +394,16 @@ class _CartItemWidgetState extends State<_CartItemWidget> {
                 decoration: BoxDecoration(
                   color: Colors.redAccent,
                   borderRadius: BorderRadius.circular(AppTheme.radius),
-                  border: Border.all(color: Colors.red.shade900.withOpacity(0.2), width: 1),
+                  border: Border.all(
+                    color: Colors.red.shade900.withOpacity(0.2),
+                    width: 1,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFF8B0000), // Rojo Bordó Oscuro
                       offset: Offset(0, 6 - offset),
                       blurRadius: 0,
-                    )
+                    ),
                   ],
                 ),
                 child: const Icon(
@@ -426,7 +424,7 @@ class _CartItemWidgetState extends State<_CartItemWidget> {
 String formatCurrency(double amount, String code, String symbol) {
   // Determinamos el locale básico según la moneda para el formato de puntos y comas
   // es_AR: 1.234,56 | en_US: 1,234.56
-  String locale = 'es_AR'; 
+  String locale = 'es_AR';
   if (['USD', 'GBP', 'JPY', 'CAD', 'AUD'].contains(code)) {
     locale = 'en_US';
   }
@@ -436,9 +434,9 @@ String formatCurrency(double amount, String code, String symbol) {
   formatter.maximumFractionDigits = 2;
 
   String prefix = symbol.isEmpty ? code : symbol;
-  
+
   // Si es un símbolo corto ($) lo pegamos, si es sigla (USD) dejamos espacio
-  return prefix.length <= 1 
-      ? '$prefix${formatter.format(amount)}' 
+  return prefix.length <= 1
+      ? '$prefix${formatter.format(amount)}'
       : '$prefix ${formatter.format(amount)}';
 }

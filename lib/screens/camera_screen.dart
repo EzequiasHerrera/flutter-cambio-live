@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
@@ -85,8 +86,9 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   Future<void> _checkTutorial() async {
-    bool hasSeen = await _storageService
-        .hasSeenTutorial(StorageService.keyHasSeenCameraTutorial);
+    bool hasSeen = await _storageService.hasSeenTutorial(
+      StorageService.keyHasSeenCameraTutorial,
+    );
 
     if (!hasSeen && mounted) {
       Tutorial.show(
@@ -98,8 +100,9 @@ class _CameraScreenState extends State<CameraScreen>
           keyEnteros: _keyCamEnterosButton,
         ),
         onFinish: () {
-          _storageService
-              .setTutorialAsSeen(StorageService.keyHasSeenCameraTutorial);
+          _storageService.setTutorialAsSeen(
+            StorageService.keyHasSeenCameraTutorial,
+          );
         },
       );
     }
@@ -306,7 +309,7 @@ class _CameraScreenState extends State<CameraScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (!_camera.isInitialized || _camera.controller == null) {
+    if (!kIsWeb && (!_camera.isInitialized || _camera.controller == null)) {
       return const Scaffold(
         backgroundColor: Colors.black,
         body: Center(child: CircularProgressIndicator()),
@@ -341,6 +344,25 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   Widget _buildCameraPreview() {
+    if (kIsWeb) {
+      return Container(
+        color: Colors.black87,
+        child: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.camera_alt, size: 60, color: Colors.white54),
+              SizedBox(height: 8),
+              Text(
+                'Cámara simulada (Device Preview)',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Positioned.fill(
       child: FittedBox(
         fit: BoxFit.cover,

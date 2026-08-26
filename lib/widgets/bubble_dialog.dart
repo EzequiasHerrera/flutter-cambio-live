@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-enum BubbleDirection { left, right, bottom, middlebottom, top }
+// 1. Agregamos bottomLeft al enum
+enum BubbleDirection { left, right, bottom, middlebottom, bottomLeft, top }
 
 class BubbleDialog extends StatelessWidget {
   final String message;
@@ -75,13 +76,22 @@ class BubbleDialog extends StatelessWidget {
           child: Center(child: triangle),
         );
       case BubbleDirection.bottom:
-        return Positioned(bottom: -10, left: 0, right: 0, child: Center(child: triangle));
       case BubbleDirection.middlebottom:
         return Positioned(
           bottom: -10,
           left: 0,
           right: 0,
           child: Center(child: triangle),
+        );
+
+      // ============================================================
+      // NUEVO: Pone la flechita abajo pero alineada a la IZQUIERDA
+      // ============================================================
+      case BubbleDirection.bottomLeft:
+        return Positioned(
+          bottom: -10,
+          left: 20, // Distancia desde la esquina izquierda del globo
+          child: triangle,
         );
     }
   }
@@ -120,15 +130,14 @@ class TrianglePainter extends CustomPainter {
         path.lineTo(size.width / 2, 0);
         path.lineTo(size.width, size.height);
         break;
+
+      // Todos los casos donde la flecha apunta hacia abajo usaran este dibujo limpio
       case BubbleDirection.bottom:
-        path.moveTo(0, 0);
-        path.lineTo(size.width / 2, size.height);
-        path.lineTo(size.width, 0);
-        break;
       case BubbleDirection.middlebottom:
-        path.moveTo(0, 0);
-        path.lineTo(size.width / 2, size.height);
-        path.lineTo(size.width, 0);
+      case BubbleDirection.bottomLeft:
+        path.moveTo(0, 0); // Arriba a la izquierda
+        path.lineTo(size.width / 2, size.height); // Punta abajo al centro
+        path.lineTo(size.width, 0); // Arriba a la derecha
         break;
     }
     path.close();
