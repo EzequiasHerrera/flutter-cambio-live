@@ -1,5 +1,6 @@
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:howmuch/providers/app_provider.dart';
 import 'package:howmuch/screens/home_screen.dart';
@@ -8,8 +9,15 @@ import 'package:howmuch/screens/cart_screen.dart';
 import 'package:howmuch/screens/calculator_screen.dart';
 import 'package:howmuch/theme/app_theme.dart';
 
-void main() {
-  runApp(DevicePreview(builder: (context) => const MyApp()));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitUp,
+  ]);
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

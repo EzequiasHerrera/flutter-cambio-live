@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:developer' as dev;
 import 'package:provider/provider.dart';
 import 'package:howmuch/providers/app_provider.dart';
 import 'package:howmuch/widgets/action_button.dart';
@@ -32,14 +31,13 @@ class _PriceCardState extends State<PriceCard> {
     // Disparar vibración y log solo cuando el valor cambia realmente
     if (oldWidget.convertedValue != widget.convertedValue) {
       FeedbackService.heavy();
-      dev.log("Precio actualizado: ${widget.convertedValue}", name: "PRICE_CARD");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<AppProvider>(context);
-    
+
     // Forzamos el uso de los colores y estilo del tema claro (Light Theme)
     final lightTheme = AppTheme.lightTheme;
     final colorScheme = lightTheme.colorScheme;
@@ -74,9 +72,14 @@ class _PriceCardState extends State<PriceCard> {
                             height: 16,
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                            child: Icon(Icons.arrow_forward_rounded,
-                                size: 14, color: secondaryTextColor),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4.0,
+                            ),
+                            child: Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 14,
+                              color: secondaryTextColor,
+                            ),
                           ),
                           CurrencyIcon(
                             currencyCode: provider.targetCurrency?.code ?? '',
@@ -119,10 +122,7 @@ class _PriceCardState extends State<PriceCard> {
                   ),
                 ],
               ),
-              Divider(
-                color: mainTextColor?.withOpacity(0.1),
-                height: 12,
-              ),
+              Divider(color: mainTextColor?.withOpacity(0.1), height: 12),
               // Precio convertido con animación de escala
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
@@ -133,10 +133,7 @@ class _PriceCardState extends State<PriceCard> {
                       parent: animation,
                       curve: Curves.easeOutBack,
                     ),
-                    child: FadeTransition(
-                      opacity: animation,
-                      child: child,
-                    ),
+                    child: FadeTransition(opacity: animation, child: child),
                   );
                 },
                 child: Text(
@@ -176,5 +173,7 @@ class _PriceCardState extends State<PriceCard> {
 String formatPrice(double price) {
   final String s = price.toStringAsFixed(2).replaceAll('.', ',');
   return s.replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+    RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+    (Match m) => '${m[1]}.',
+  );
 }

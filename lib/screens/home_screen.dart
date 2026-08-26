@@ -39,7 +39,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _checkTutorial() async {
-    bool hasSeen = await _storageService.hasSeenTutorial(StorageService.keyHasSeenHomeTutorial);
+    bool hasSeen = await _storageService.hasSeenTutorial(
+      StorageService.keyHasSeenHomeTutorial,
+    );
 
     if (!hasSeen && mounted) {
       Tutorial.show(
@@ -52,9 +54,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
 
-      await _storageService.setTutorialAsSeen(StorageService.keyHasSeenHomeTutorial);
+      await _storageService.setTutorialAsSeen(
+        StorageService.keyHasSeenHomeTutorial,
+      );
     }
-
   }
 
   @override
@@ -245,11 +248,15 @@ class _HomeScreenState extends State<HomeScreen> {
               if (value != null) ...[
                 CurrencyIcon(currencyCode: value.code),
                 const SizedBox(width: 10),
-                Text(
-                  '${value.code} - ${value.name}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                Expanded(
+                  child: Text(
+                    '${value.code} - ${value.name}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
               ] else
@@ -295,12 +302,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           const Icon(Icons.stars_rounded, color: Colors.orange),
                           const SizedBox(width: 10),
-                          Text(
-                            provider.customName,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: colorScheme.primary,
+                          Expanded(
+                            child: Text(
+                              provider.customName,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: colorScheme.primary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                           ),
                         ],
@@ -312,11 +323,15 @@ class _HomeScreenState extends State<HomeScreen> {
                               currencyCode: provider.targetCurrency!.code,
                             ),
                             const SizedBox(width: 10),
-                            Text(
-                              '${provider.targetCurrency!.code} - ${provider.targetCurrency!.name}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                            Expanded(
+                              child: Text(
+                                '${provider.targetCurrency!.code} - ${provider.targetCurrency!.name}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
                             ),
                           ] else
