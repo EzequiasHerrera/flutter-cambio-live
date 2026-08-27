@@ -168,9 +168,10 @@ class _CameraScreenState extends State<CameraScreen>
     _lastProcessTime = now;
 
     try {
-      if (inputImage.metadata?.size == null) return;
+      if (inputImage.metadata?.size == null || !mounted) return;
 
-      final text = await _ocr.processImage(inputImage);
+      final recognizedText = await _ocr.processImage(inputImage);
+
       if (!mounted) return;
 
       final screenSize = MediaQuery.of(context).size;
@@ -179,10 +180,11 @@ class _CameraScreenState extends State<CameraScreen>
       // Update Geometry for Debug Overlay
       _calculateGeometry(screenSize, imgSize);
 
+      //Muestra los boundingBox leídos en pantalla MODO DEBUG
       if (_showDebugOverlay) {
         setState(() {
           _frameDetections = [
-            for (var block in text.blocks)
+            for (var block in recognizedText.blocks)
               for (var line in block.lines)
                 (text: line.text, rect: line.boundingBox),
           ];
@@ -195,13 +197,16 @@ class _CameraScreenState extends State<CameraScreen>
         height: _roiHeight,
       );
 
+      final provider = Provider.of<AppProvider>(context, listen: false);
+
       final rawPrice = _priceInterpreter.processFramePipeline(
-        text: text,
+        text: recognizedText,
         roi: roi,
         screenSize: screenSize,
         imageSize: imgSize,
         feedback: _feedbackService,
         ignoreDecimals: _isIgnoringDecimals,
+        currencyCode: provider.baseCurrency?.code,
       );
 
       if (rawPrice == null) return;
@@ -212,7 +217,6 @@ class _CameraScreenState extends State<CameraScreen>
       );
       if (stable == null) return;
 
-      final provider = Provider.of<AppProvider>(context, listen: false);
       final value = double.tryParse(stable.replaceAll(',', '.'));
 
       if (value != null && value > 0) {
@@ -309,12 +313,12 @@ class _CameraScreenState extends State<CameraScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb && (!_camera.isInitialized || _camera.controller == null)) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+    // if (!kIsWeb && (!_camera.isInitialized || _camera.controller == null)) {
+    //   return const Scaffold(
+    //     backgroundColor: Colors.black,
+    //     body: Center(child: CircularProgressIndicator()),
+    //   );
+    // }
 
     final provider = Provider.of<AppProvider>(context);
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
@@ -344,24 +348,24 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   Widget _buildCameraPreview() {
-    if (kIsWeb) {
-      return Container(
-        color: Colors.black87,
-        child: const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.camera_alt, size: 60, color: Colors.white54),
-              SizedBox(height: 8),
-              Text(
-                'Cámara simulada (Device Preview)',
-                style: TextStyle(color: Colors.white54),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+    // if (kIsWeb) {
+    //   return Container(
+    //     color: Colors.black87,
+    //     child: const Center(
+    //       child: Column(
+    //         mainAxisSize: MainAxisSize.min,
+    //         children: [
+    //           Icon(Icons.camera_alt, size: 60, color: Colors.white54),
+    //           SizedBox(height: 8),
+    //           Text(
+    //             'Cámara simulada (Device Preview)',
+    //             style: TextStyle(color: Colors.white54),
+    //           ),
+    //         ],
+    //       ),
+    //     ),
+    //   );
+    // }
 
     return Positioned.fill(
       child: FittedBox(

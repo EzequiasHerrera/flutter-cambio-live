@@ -21,6 +21,7 @@ class PriceInterpreter {
     required Size imageSize,
     FeedbackService? feedback,
     bool ignoreDecimals = false,
+    String? currencyCode,
   }) {
     // 1. Geometry Setup
     double imgWidth = imageSize.width;
@@ -67,6 +68,7 @@ class PriceInterpreter {
       offsetX,
       offsetY,
       ignoreDecimals: ignoreDecimals,
+      currencyCode: currencyCode,
     );
 
     if (result == null) {

@@ -24,6 +24,12 @@ class PriceRoiFilter {
         );
 
         if (roi.overlaps(textLineInScreen)) {
+          // Point 6: Ignore if wider than ROI
+          if (textLineInScreen.width > roi.width) continue;
+
+          // Point 7: Ignore if too small (less than 20% of ROI height)
+          if (textLineInScreen.height < roi.height * 0.20) continue;
+
           validLines.add(line);
         }
       }

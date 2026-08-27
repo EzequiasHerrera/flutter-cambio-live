@@ -1,4 +1,3 @@
-import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +7,7 @@ import 'package:howmuch/screens/camera_screen.dart';
 import 'package:howmuch/screens/cart_screen.dart';
 import 'package:howmuch/screens/calculator_screen.dart';
 import 'package:howmuch/theme/app_theme.dart';
+//import 'package:device_preview/device_preview.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,8 +28,8 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [ChangeNotifierProvider(create: (_) => AppProvider())],
       child: MaterialApp(
-        locale: DevicePreview.locale(context),
-        builder: DevicePreview.appBuilder,
+        //locale: DevicePreview.locale(context),
+        //builder: DevicePreview.appBuilder,
 
         title: 'Howmuch',
         debugShowCheckedModeBanner: false,

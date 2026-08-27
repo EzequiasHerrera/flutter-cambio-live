@@ -5,7 +5,7 @@ class PriceGroupsLogic {
   static final RegExp _rxHasNumbers = RegExp(r'[0-9]');
   static final RegExp _rxLettersAndNoise = RegExp(r'[^0-9.,]');
   static final RegExp _rxOnlyDigits = RegExp(r'[^0-9]');
-  static final RegExp _rxPerfectFormat = RegExp(r'^(\d{1,3}([.,]\d{3})*)[.,]\d{2}$');
+  static final RegExp rxPerfectFormat = RegExp(r'^(\d{1,3}([.,]\d{3})*)[.,]\d{2}$');
 
   /// Groups detected text lines into potential price candidates based on spatial proximity
   /// and common price fragmentation patterns.
@@ -33,10 +33,6 @@ class PriceGroupsLogic {
       // Case A: Already in a perfect price format (e.g., "12.90")
       if (_evaluatePerfectFormat(cleanText, baseLine, lot)) continue;
 
-      // Case B: Pure digits that look like they need splitting (e.g., "100099" -> "1000.99")
-      // Skip this fracture logic if we are in "Ignoring Decimals" mode to avoid turning "234" into "2"
-      if (!ignoreDecimals && _evaluateFracture(pureDigits, baseLine, lot)) continue;
-
       // Case C: Look for nearby cent decimals (Case "99" near "10")
       _evaluateProximity(baseLine, numericLines, lot, ignoreDecimals: ignoreDecimals);
     }
@@ -50,24 +46,9 @@ class PriceGroupsLogic {
 
   // Strategies
   static bool _evaluatePerfectFormat(String cleanText, TextLine baseLine, List<List<TextLine>> lot) {
-    if (_rxPerfectFormat.hasMatch(cleanText)) {
+    if (rxPerfectFormat.hasMatch(cleanText)) {
       lot.add([baseLine]);
       return true;
-    }
-    return false;
-  }
-
-  static bool _evaluateFracture(String pureDigits, TextLine baseLine, List<List<TextLine>> lot) {
-    if (pureDigits.length >= 3) {
-      final String cents = pureDigits.substring(pureDigits.length - 2);
-      if (cents != "00") {
-        final String integerPart = pureDigits.substring(0, pureDigits.length - 2);
-        lot.add([
-          _cloneLineWithText(baseLine, integerPart),
-          _cloneLineWithText(baseLine, cents),
-        ]);
-        return true;
-      }
     }
     return false;
   }
@@ -127,8 +108,8 @@ class PriceGroupsLogic {
       final textA = a.map((e) => e.text).join(' ').replaceAll(_rxLettersAndNoise, '');
       final textB = b.map((e) => e.text).join(' ').replaceAll(_rxLettersAndNoise, '');
 
-      final bool isPerfectA = _rxPerfectFormat.hasMatch(textA) && a.length == 1;
-      final bool isPerfectB = _rxPerfectFormat.hasMatch(textB) && b.length == 1;
+      final bool isPerfectA = rxPerfectFormat.hasMatch(textA) && a.length == 1;
+      final bool isPerfectB = rxPerfectFormat.hasMatch(textB) && b.length == 1;
 
       // Priority 1: Perfect format
       if (isPerfectA && !isPerfectB) return -1;

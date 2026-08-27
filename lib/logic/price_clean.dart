@@ -19,11 +19,24 @@ class PriceClean {
   static final RegExp _rxCleanMath = RegExp(r'[^\d.,]');
   static final RegExp _rxDecimalMatch = RegExp(r'^(0|[1-9]\d*)\.\d{1,2}$');
   static final RegExp _rxIntegerMatch = RegExp(r'^(0|[1-9]\d*)$');
+  static final RegExp _rxOnlyDigitsSearch = RegExp(r'\d+');
 
   /// Cleans raw OCR text and attempts to extract a valid price format (e.g., 123.45).
-  static String? cleanAndExtractPrice(String rawText, {bool ignoreDecimals = false}) {
+  static String? cleanAndExtractPrice(
+    String rawText, {
+    bool ignoreDecimals = false,
+    String? currencyCode,
+  }) {
+    // CONDICIÓN ESPECIFICA DE BRL:
+    // RS at start might be a misread "R$". S becomes 5.
+    // If currency is BRL and starts with RS, remove it.
+    String textToProcess = rawText;
+    if (currencyCode == 'BRL' && textToProcess.toUpperCase().startsWith('RS')) {
+      textToProcess = textToProcess.substring(2);
+    }
+
     // Pre-process common fragmentation patterns
-    String preProcessed = rawText
+    String preProcessed = textToProcess
         .replaceAllMapped(_rxAssemble1, (m) => '${m[1]}.${m[2]}')
         .replaceAllMapped(_rxAssemble2, (m) => '${m[1]}.${m[3]}');
 
@@ -43,6 +56,12 @@ class PriceClean {
 
       // Final sanitization to a numeric string with a dot as decimal separator
       String finalNumber = cleaned.replaceAll(_rxCleanMath, '').replaceAll(',', '.');
+
+      // Point: Ignore numbers of more than 5 or 6 digits without a separator in the middle.
+      // This helps ignore barcodes or long IDs.
+      if (!finalNumber.contains('.')) {
+        if (finalNumber.length >= 5) continue;
+      }
 
       // Final validation against the expected format
       if (finalNumber.contains('.')) {

@@ -30,8 +30,8 @@ class StorageService {
 
   // User already saw tutorial SAVE IT
   Future<void> setTutorialAsSeen(String tutorialKey) async {
-    //final prefs = await SharedPreferences.getInstance();
-    //await prefs.setBool(tutorialKey, true);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(tutorialKey, true);
   }
 
   // Reset all tutorials

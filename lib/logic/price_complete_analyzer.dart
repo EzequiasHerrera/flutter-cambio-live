@@ -14,23 +14,36 @@ class PriceCompleteAnalyzer {
     double offsetX,
     double offsetY, {
     bool ignoreDecimals = false,
+    String? currencyCode,
   }) {
     String? bestPrice;
-    double minDistance = double.infinity;
+    double bestScore = -1.0; // Higher is better
 
     for (final List<TextLine> row in groupedCandidates) {
       final String combinedText = row.map((e) => e.text).join(' ');
       final String? price = PriceClean.cleanAndExtractPrice(
         combinedText,
         ignoreDecimals: ignoreDecimals,
+        currencyCode: currencyCode,
       );
 
       if (price != null) {
         final Offset centerInScreen = _calculateCenterOnScreen(row, scale, offsetX, offsetY);
         final double distance = (centerInScreen - roiCenter).distance;
 
-        if (distance < minDistance) {
-          minDistance = distance;
+        // Point 1: Prioritize central AND large
+        // We calculate a score based on height (size) and distance (centrality)
+        final double height = row.first.boundingBox.height * scale;
+        
+        // Normalize distance: 0 at center, decreasing as it moves away.
+        // We use a simple inversion or subtraction from a large enough constant.
+        final double centralityScore = max(0, 1000 - distance);
+        final double sizeScore = height * 2; // Weight size slightly more
+        
+        final double totalScore = centralityScore + sizeScore;
+
+        if (totalScore > bestScore) {
+          bestScore = totalScore;
           bestPrice = price;
         }
       }
