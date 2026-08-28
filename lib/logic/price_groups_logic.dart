@@ -1,109 +1,115 @@
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 class PriceGroupsLogic {
-  // Regular Expressions for price detection and cleaning
+  // Expresiones regulares para detección y limpieza
   static final RegExp _rxHasNumbers = RegExp(r'[0-9]');
   static final RegExp _rxLettersAndNoise = RegExp(r'[^0-9.,]');
   static final RegExp _rxOnlyDigits = RegExp(r'[^0-9]');
   static final RegExp rxPerfectFormat = RegExp(r'^(\d{1,3}([.,]\d{3})*)[.,]\d{2}$');
 
-  /// Groups detected text lines into potential price candidates based on spatial proximity
-  /// and common price fragmentation patterns.
-  static List<List<TextLine>> groupPricesByLeader(List<TextLine> linesInRoi, {bool ignoreDecimals = false}) {
-    // 1. Filter out lines that don't contain numbers
-    final numericLines = _filterNumericLines(linesInRoi);
-    if (numericLines.isEmpty) return [];
+  /// Agrupa los elementos de texto individuales en candidatos de precio basados en proximidad geométrica.
+  static List<List<TextElement>> groupPricesByLeader(
+      List<TextElement> elementsInRoi, {
+        bool ignoreDecimals = false,
+      }) {
+    // 1. Filtrar solo los elementos que contengan al menos un número
+    final numericElements = _filterNumericElements(elementsInRoi);
+    if (numericElements.isEmpty) return [];
 
-    // 2. Apply grouping strategies
-    final candidates = _processStrategies(numericLines, ignoreDecimals: ignoreDecimals);
+    // 2. Aplicar estrategias de agrupación
+    final candidates = _processStrategies(numericElements, ignoreDecimals: ignoreDecimals);
 
-    // 3. Rank candidates (native format and font size)
+    // 3. Ordenar candidatos por prioridad (formato perfecto y tamaño de fuente)
     return _rankCandidates(candidates);
   }
 
-  // --- Private Strategies ---
-  static List<List<TextLine>> _processStrategies(List<TextLine> numericLines, {bool ignoreDecimals = false}) {
-    final List<List<TextLine>> lot = [];
+  // --- Métodos Privados ---
 
-    for (final TextLine baseLine in numericLines) {
-      final String originalText = baseLine.text;
+  static List<TextElement> _filterNumericElements(List<TextElement> elements) {
+    return elements.where((e) => _rxHasNumbers.hasMatch(e.text)).toList();
+  }
+
+  static List<List<TextElement>> _processStrategies(
+      List<TextElement> numericElements, {
+        bool ignoreDecimals = false,
+      }) {
+    final List<List<TextElement>> lot = [];
+
+    for (final TextElement baseElement in numericElements) {
+      final String originalText = baseElement.text;
       final String cleanText = originalText.replaceAll(_rxLettersAndNoise, '');
-      final String pureDigits = originalText.replaceAll(_rxOnlyDigits, '');
 
-      // Case A: Already in a perfect price format (e.g., "12.90")
-      if (_evaluatePerfectFormat(cleanText, baseLine, lot)) continue;
+      // Caso A: El elemento ya viene con un formato perfecto de precio (ej. "12.90")
+      if (_evaluatePerfectFormat(cleanText, baseElement, lot)) continue;
 
-      // Case C: Look for nearby cent decimals (Case "99" near "10")
-      _evaluateProximity(baseLine, numericLines, lot, ignoreDecimals: ignoreDecimals);
+      // Caso B: Buscar céntimos cercanos (ej. "99" cerca de "10")
+      _evaluateProximity(baseElement, numericElements, lot, ignoreDecimals: ignoreDecimals);
     }
 
     return lot;
   }
 
-  static List<TextLine> _filterNumericLines(List<TextLine> lines) {
-    return lines.where((line) => _rxHasNumbers.hasMatch(line.text)).toList();
-  }
-
-  // Strategies
-  static bool _evaluatePerfectFormat(String cleanText, TextLine baseLine, List<List<TextLine>> lot) {
+  static bool _evaluatePerfectFormat(
+      String cleanText,
+      TextElement baseElement,
+      List<List<TextElement>> lot,
+      ) {
     if (rxPerfectFormat.hasMatch(cleanText)) {
-      lot.add([baseLine]);
+      lot.add([baseElement]);
       return true;
     }
     return false;
   }
 
-  static void _evaluateProximity(TextLine baseLine, List<TextLine> numericLines, List<List<TextLine>> lot, {bool ignoreDecimals = false}) {
-    final List<TextLine> neighbors = numericLines.where((candidate) {
-      if (candidate == baseLine) return false;
+  static void _evaluateProximity(
+      TextElement baseElement,
+      List<TextElement> numericElements,
+      List<List<TextElement>> lot, {
+        bool ignoreDecimals = false,
+      }) {
+    final double h = baseElement.boundingBox.height.toDouble();
 
-      final candDigits = candidate.text.replaceAll(_rxOnlyDigits, '');
-      // If ignoring decimals, we don't expect 2-digit cent neighbors to join as decimals
+    final List<TextElement> neighbors = numericElements.where((candidate) {
+      if (candidate == baseElement) return false;
       if (ignoreDecimals) return false;
 
+      final candDigits = candidate.text.replaceAll(_rxOnlyDigits, '');
+      // El candidato a céntimo debe ser de exactamente 2 dígitos
       if (candDigits.length != 2) return false;
 
-      // Calculate horizontal centers
-      final double baseCenterX = (baseLine.boundingBox.left + baseLine.boundingBox.right) / 2;
-      final double candCenterX = (candidate.boundingBox.left + candidate.boundingBox.right) / 2;
+      // 1. Regla del tamaño relativo: Los céntimos miden entre el 30% y el 100% de la parte entera
+      final double candHeight = candidate.boundingBox.height.toDouble();
+      if (candHeight < (h * 0.3) || candHeight > (h * 1.0)) return false;
 
-      final bool isToTheRight = candCenterX > baseCenterX;
+      // 2. Regla de posición a la Derecha (X):
+      // Debe estar a la derecha pero no más lejos que 1.5 veces la altura H
+      final double baseRight = baseElement.boundingBox.right.toDouble();
+      final double candLeft = candidate.boundingBox.left.toDouble();
 
-      // Vertical tolerance (50% of height) for tilted text
-      final double margin = baseLine.boundingBox.height * 0.5;
-      final bool inVerticalRange =
-          candidate.boundingBox.top >= (baseLine.boundingBox.top - margin) &&
-              candidate.boundingBox.bottom <= (baseLine.boundingBox.bottom + margin);
+      final bool isToTheRight = candLeft >= (baseRight - (h * 0.2)) &&
+          candLeft <= (baseRight + (h * 1.5));
+
+      // 3. Regla de alineación Vertical (Y):
+      // El céntimo debe alinearse con la mitad superior del número base
+      final double baseTop = baseElement.boundingBox.top.toDouble();
+      final double candTop = candidate.boundingBox.top.toDouble();
+
+      final bool inVerticalRange = candTop >= (baseTop - (h * 0.2)) &&
+          candTop <= (baseTop + (h * 0.6));
 
       return isToTheRight && inVerticalRange;
     }).toList();
 
     if (neighbors.isNotEmpty) {
-      neighbors.sort((a, b) {
-        final centerA = (a.boundingBox.left + a.boundingBox.right) / 2;
-        final centerB = (b.boundingBox.left + b.boundingBox.right) / 2;
-        return centerA.compareTo(centerB);
-      });
-
-      lot.add([baseLine, neighbors.first]);
+      // Ordenamos los vecinos de izquierda a derecha por si hay varios
+      neighbors.sort((a, b) => a.boundingBox.left.compareTo(b.boundingBox.left));
+      lot.add([baseElement, neighbors.first]);
     } else {
-      lot.add([baseLine]);
+      lot.add([baseElement]);
     }
   }
 
-  static TextLine _cloneLineWithText(TextLine original, String newText) {
-    return TextLine(
-      text: newText,
-      boundingBox: original.boundingBox,
-      elements: original.elements,
-      cornerPoints: original.cornerPoints,
-      recognizedLanguages: original.recognizedLanguages,
-      confidence: original.confidence,
-      angle: original.angle,
-    );
-  }
-
-  static List<List<TextLine>> _rankCandidates(List<List<TextLine>> candidates) {
+  static List<List<TextElement>> _rankCandidates(List<List<TextElement>> candidates) {
     candidates.sort((a, b) {
       final textA = a.map((e) => e.text).join(' ').replaceAll(_rxLettersAndNoise, '');
       final textB = b.map((e) => e.text).join(' ').replaceAll(_rxLettersAndNoise, '');
@@ -111,11 +117,11 @@ class PriceGroupsLogic {
       final bool isPerfectA = rxPerfectFormat.hasMatch(textA) && a.length == 1;
       final bool isPerfectB = rxPerfectFormat.hasMatch(textB) && b.length == 1;
 
-      // Priority 1: Perfect format
+      // Prioridad 1: Formato perfecto completo en un solo elemento
       if (isPerfectA && !isPerfectB) return -1;
       if (!isPerfectA && isPerfectB) return 1;
 
-      // Priority 2: Largest font size
+      // Prioridad 2: Mayor altura de fuente en el elemento principal
       return b.first.boundingBox.height.compareTo(a.first.boundingBox.height);
     });
 

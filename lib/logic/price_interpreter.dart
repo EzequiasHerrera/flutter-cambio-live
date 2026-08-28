@@ -40,8 +40,8 @@ class PriceInterpreter {
     final double offsetX = ((imgWidth * scale) - screenSize.width) / 2;
     final double offsetY = ((imgHeight * scale) - screenSize.height) / 2;
 
-    // 2. Spatial Filtering (ROI) ✅
-    final List<TextLine> linesInRoi = PriceRoiFilter.filterPricesOnROI(
+    // 2. Spatial Filtering (ROI) ✅ (Operando a nivel de TextElement)
+    final List<TextElement> elementsInRoi = PriceRoiFilter.filterPricesOnROI(
       text,
       roi,
       scale,
@@ -49,14 +49,14 @@ class PriceInterpreter {
       offsetY,
     );
 
-    if (linesInRoi.isEmpty) {
+    if (elementsInRoi.isEmpty) {
       feedback?.updateFeedback("Apunta directamente al precio");
       return null;
     }
 
     // 3. Grouping Logic
-    final List<List<TextLine>> groupedCandidates = PriceGroupsLogic.groupPricesByLeader(
-      linesInRoi,
+    final List<List<TextElement>> groupedCandidates = PriceGroupsLogic.groupPricesByLeader(
+      elementsInRoi,
       ignoreDecimals: ignoreDecimals,
     );
 
@@ -97,15 +97,16 @@ class PriceInterpreter {
       }
     });
 
-    if (winner != null) {
+    final currentWinner = winner;
+    if (currentWinner != null) {
       // Logic for updating the stable price
       if (_stableText.isEmpty && maxCount >= 2) {
-        _stableText = winner!;
+        _stableText = currentWinner;
       } else if (_stableText.isNotEmpty &&
-          winner != _stableText &&
+          currentWinner != _stableText &&
           maxCount >= OCRService.requiredMatches) {
-        _stableText = winner!;
-      } else if (winner != _stableText) {
+        _stableText = currentWinner;
+      } else if (currentWinner != _stableText) {
         feedback?.updateFeedback("Casi lo tengo... mantén la cámara fija");
       }
     }
@@ -119,4 +120,3 @@ class PriceInterpreter {
     _stableText = "";
   }
 }
-

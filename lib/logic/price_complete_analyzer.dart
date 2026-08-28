@@ -1,25 +1,24 @@
 import 'dart:math';
 import 'dart:ui';
-
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:howmuch/logic/price_clean.dart';
 
 class PriceCompleteAnalyzer {
-  /// Analyzes and extracts the best price candidate from grouped text lines.
-  /// Selects the price closest to the center of the ROI.
+  /// Analiza y extrae el mejor candidato de precio a partir de elementos agrupados.
+  /// Selecciona el precio con mejor balance entre tamaño y cercanía al centro del ROI.
   static String? analyzeAndExtract(
-    List<List<TextLine>> groupedCandidates,
-    Offset roiCenter,
-    double scale,
-    double offsetX,
-    double offsetY, {
-    bool ignoreDecimals = false,
-    String? currencyCode,
-  }) {
+      List<List<TextElement>> groupedCandidates,
+      Offset roiCenter,
+      double scale,
+      double offsetX,
+      double offsetY, {
+        bool ignoreDecimals = false,
+        String? currencyCode,
+      }) {
     String? bestPrice;
-    double bestScore = -1.0; // Higher is better
+    double bestScore = -1.0; // A mayor puntaje, mejor candidato
 
-    for (final List<TextLine> row in groupedCandidates) {
+    for (final List<TextElement> row in groupedCandidates) {
       final String combinedText = row.map((e) => e.text).join(' ');
       final String? price = PriceClean.cleanAndExtractPrice(
         combinedText,
@@ -31,15 +30,13 @@ class PriceCompleteAnalyzer {
         final Offset centerInScreen = _calculateCenterOnScreen(row, scale, offsetX, offsetY);
         final double distance = (centerInScreen - roiCenter).distance;
 
-        // Point 1: Prioritize central AND large
-        // We calculate a score based on height (size) and distance (centrality)
+        // Priorizar elementos centrales Y de gran tamaño de fuente
         final double height = row.first.boundingBox.height * scale;
-        
-        // Normalize distance: 0 at center, decreasing as it moves away.
-        // We use a simple inversion or subtraction from a large enough constant.
-        final double centralityScore = max(0, 1000 - distance);
-        final double sizeScore = height * 2; // Weight size slightly more
-        
+
+        // Normalización del puntaje por centralidad y tamaño
+        final double centralityScore = max(0.0, 1000.0 - distance);
+        final double sizeScore = height * 2.0; // Ponderación de altura
+
         final double totalScore = centralityScore + sizeScore;
 
         if (totalScore > bestScore) {
@@ -52,21 +49,21 @@ class PriceCompleteAnalyzer {
     return bestPrice;
   }
 
-  /// Calculates the visual center of a group of TextLines in screen coordinates.
+  /// Calcula el centro visual exacto en coordenadas de pantalla para un grupo de TextElements.
   static Offset _calculateCenterOnScreen(
-    List<TextLine> row,
-    double scale,
-    double offsetX,
-    double offsetY,
-  ) {
-    double minLeft = row.map((e) => e.boundingBox.left).reduce(min);
-    double minTop = row.map((e) => e.boundingBox.top).reduce(min);
-    double maxRight = row.map((e) => e.boundingBox.right).reduce(max);
-    double maxBottom = row.map((e) => e.boundingBox.bottom).reduce(max);
+      List<TextElement> row,
+      double scale,
+      double offsetX,
+      double offsetY,
+      ) {
+    double minLeft = row.map((e) => e.boundingBox.left.toDouble()).reduce(min);
+    double minTop = row.map((e) => e.boundingBox.top.toDouble()).reduce(min);
+    double maxRight = row.map((e) => e.boundingBox.right.toDouble()).reduce(max);
+    double maxBottom = row.map((e) => e.boundingBox.bottom.toDouble()).reduce(max);
 
     final Offset combinedCenterInImage = Offset(
-      (minLeft + maxRight) / 2,
-      (minTop + maxBottom) / 2,
+      (minLeft + maxRight) / 2.0,
+      (minTop + maxBottom) / 2.0,
     );
 
     return Offset(
