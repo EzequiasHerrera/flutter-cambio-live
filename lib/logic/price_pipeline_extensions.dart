@@ -148,7 +148,7 @@ extension GroupCandidatesExtension on List<TextElement> {
   }
 }
 
-// --- ESLABÓN 3: Selección del Mejor Candidato y Scoring ---
+// --- ESLABÓN 3: Selección del Mejor Candidato y Scoring Balanceado ---
 extension SelectBestCandidateExtension on List<List<TextElement>> {
   String? selectBestCandidate({
     required Rect roi,
@@ -181,7 +181,7 @@ extension SelectBestCandidateExtension on List<List<TextElement>> {
     for (final List<TextElement> row in this) {
       final String combinedText = row.map((e) => e.text).join(' ');
 
-      // Limpieza y extracción
+      // Limpieza y extracción del valor
       final String? price = _cleanAndExtractPrice(
         combinedText,
         ignoreDecimals: ignoreDecimals,
@@ -189,6 +189,7 @@ extension SelectBestCandidateExtension on List<List<TextElement>> {
       );
 
       if (price != null) {
+        // 1. Coordenadas físicas en pantalla
         double minLeft = row.map((e) => e.boundingBox.left.toDouble()).reduce(min);
         double minTop = row.map((e) => e.boundingBox.top.toDouble()).reduce(min);
         double maxRight = row.map((e) => e.boundingBox.right.toDouble()).reduce(max);
@@ -199,13 +200,19 @@ extension SelectBestCandidateExtension on List<List<TextElement>> {
           (((minTop + maxBottom) / 2.0) * scale) - offsetY,
         );
 
+        // 2. Métrica de Centralidad y Tamaño
         final double distance = (centerInScreen - roi.center).distance;
         final double height = row.first.boundingBox.height * scale;
 
-        final double centralityScore = max(0.0, 1000.0 - distance);
-        final double sizeScore = height * 2.0;
+        final double centralityScore = max(0.0, 1000.0 - distance); // Máx 1000 pts
+        final double sizeScore = height * 2.5;                       // Ponderación por tamaño
 
-        final double totalScore = centralityScore + sizeScore;
+        // 3. NUEVO: Bonus moderado por formato perfecto (En lugar de prioridad absoluta)
+        final bool isPerfectFormat = _rxPerfectFormat.hasMatch(price);
+        final double formatBonus = isPerfectFormat ? 150.0 : 0.0;
+
+        // 4. Suma total balanceada
+        final double totalScore = centralityScore + sizeScore + formatBonus;
 
         if (totalScore > bestScore) {
           bestScore = totalScore;

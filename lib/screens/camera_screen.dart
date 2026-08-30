@@ -317,12 +317,14 @@ class _CameraScreenState extends State<CameraScreen>
 
   @override
   Widget build(BuildContext context) {
-    // if (!kIsWeb && (!_camera.isInitialized || _camera.controller == null)) {
-    //   return const Scaffold(
-    //     backgroundColor: Colors.black,
-    //     body: Center(child: CircularProgressIndicator()),
-    //   );
-    // }
+    if (!_camera.isInitialized || _camera.controller == null || !_camera.controller!.value.isInitialized) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
+      );
+    }
 
     final provider = Provider.of<AppProvider>(context);
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
