@@ -5,7 +5,7 @@ class OCRService {
   static const int requiredMatches = 2;
 
   /// Minimum time between frame processing in milliseconds.
-  static const int processIntervalMs = 50;
+  static const int processIntervalMs = 30;
 
   /// Whether to allow prices without decimal parts.
   static const bool allowIntegersOnly = false;

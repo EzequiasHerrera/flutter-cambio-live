@@ -2,13 +2,11 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:howmuch/services/storage_service.dart';
 import 'package:provider/provider.dart';
-import 'package:howmuch/logic/price_interpreter.dart';
 import 'package:howmuch/logic/debug_state.dart';
 import 'package:howmuch/providers/app_provider.dart';
 import 'package:howmuch/services/camera_service.dart';
@@ -23,6 +21,8 @@ import 'package:howmuch/widgets/howie.dart';
 import 'package:howmuch/widgets/price_card.dart';
 import 'package:howmuch/widgets/tutorial.dart';
 
+import '../logic/price_pipeline.dart';
+
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
 
@@ -35,7 +35,6 @@ class _CameraScreenState extends State<CameraScreen>
   // Services & Logic
   final CameraService _camera = CameraService();
   final OCRService _ocr = OCRService();
-  final PriceInterpreter _priceInterpreter = PriceInterpreter();
   final FeedbackService _feedbackService = FeedbackService();
   final StorageService _storageService = StorageService();
 
@@ -168,56 +167,41 @@ class _CameraScreenState extends State<CameraScreen>
     _lastProcessTime = now;
 
     try {
-      if (inputImage.metadata?.size == null) return;
+      if (inputImage.metadata?.size == null || !mounted) return;
 
-      final text = await _ocr.processImage(inputImage);
+      final recognizedText = await _ocr.processImage(inputImage);
       if (!mounted) return;
 
       final screenSize = MediaQuery.of(context).size;
       final imgSize = inputImage.metadata!.size;
 
       // Update Geometry for Debug Overlay
-      _calculateGeometry(screenSize, imgSize);
+      _calculateCamAndImageDifference(screenSize, imgSize); //modifica valor de _scale, offsetX y offsetY
+      _updateDebugDetections(recognizedText);
 
-      if (_showDebugOverlay) {
-        setState(() {
-          _frameDetections = [
-            for (var block in text.blocks)
-              for (var line in block.lines)
-                (text: line.text, rect: line.boundingBox),
-          ];
-        });
-      }
+      final roi = _buildRoi(screenSize);
+      final provider = Provider.of<AppProvider>(context, listen: false);//Provider lo uso para el CURRENCY CODE
 
-      final roi = Rect.fromCenter(
-        center: screenSize.center(Offset.zero),
-        width: _roiWidth,
-        height: _roiHeight,
-      );
+      // --- PIPELINE DE PRECIO ENCADENADO ---
 
-      final rawPrice = _priceInterpreter.processFramePipeline(
-        text: text,
+      // PIPELINE
+      final stablePrice = PricePipeline.process(
+        recognizedText: recognizedText,
         roi: roi,
         screenSize: screenSize,
         imageSize: imgSize,
         feedback: _feedbackService,
         ignoreDecimals: _isIgnoringDecimals,
+        currencyCode: provider.baseCurrency?.code,
       );
 
-      if (rawPrice == null) return;
+      if (stablePrice == null) return;
 
-      final stable = _priceInterpreter.getStablePrice(
-        rawPrice,
-        _feedbackService,
-      );
-      if (stable == null) return;
-
-      final provider = Provider.of<AppProvider>(context, listen: false);
-      final value = double.tryParse(stable.replaceAll(',', '.'));
+      final value = double.tryParse(stablePrice.replaceAll(',', '.'));
 
       if (value != null && value > 0) {
         setState(() {
-          _detectedText = stable;
+          _detectedText = stablePrice;
           _originalValue = value;
           _convertedValue = provider.convert(value);
         });
@@ -230,17 +214,42 @@ class _CameraScreenState extends State<CameraScreen>
     }
   }
 
-  void _calculateGeometry(Size screenSize, Size imgSize) {
+  // --- MÉTODOS AUXILIARES EXTRAÍDOS ---
+
+  void _updateDebugDetections(RecognizedText recognizedText) {
+    if (!_showDebugOverlay) return;
+    setState(() {
+      _frameDetections = [
+        for (var block in recognizedText.blocks)
+          for (var line in block.lines)
+            (text: line.text, rect: line.boundingBox),
+      ];
+    });
+  }
+
+  Rect _buildRoi(Size screenSize) {
+    return Rect.fromCenter(
+      center: screenSize.center(Offset.zero),
+      width: _roiWidth,
+      height: _roiHeight,
+    );
+  }
+
+  void _calculateCamAndImageDifference(Size screenSize, Size imgSize) {
     double imgWidth = imgSize.width;
     double imgHeight = imgSize.height;
 
+    //Si la imagen llegó apaisada se corrige a vertical
     if (screenSize.height > screenSize.width &&
         imgSize.width > imgSize.height) {
       imgWidth = imgSize.height;
       imgHeight = imgSize.width;
     }
 
+    //Calculo el desfase de escala y elijo el mayor para no tener huecos en pantalla
     _scale = max(screenSize.width / imgWidth, screenSize.height / imgHeight);
+
+    //Calculo y reparto el offset entre los dos lados tanto VERTICAL como HORIZONTAL
     _offsetX = ((imgWidth * _scale) - screenSize.width) / 2;
     _offsetY = ((imgHeight * _scale) - screenSize.height) / 2;
   }
@@ -297,7 +306,6 @@ class _CameraScreenState extends State<CameraScreen>
   void _toggleIgnoreDecimalsMode() {
     setState(() {
       _isIgnoringDecimals = !_isIgnoringDecimals;
-      _priceInterpreter.reset();
       _originalValue = null;
       _convertedValue = null;
       _detectedText = "";
@@ -309,10 +317,12 @@ class _CameraScreenState extends State<CameraScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb && (!_camera.isInitialized || _camera.controller == null)) {
+    if (!_camera.isInitialized || _camera.controller == null || !_camera.controller!.value.isInitialized) {
       return const Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
       );
     }
 
@@ -344,24 +354,24 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   Widget _buildCameraPreview() {
-    if (kIsWeb) {
-      return Container(
-        color: Colors.black87,
-        child: const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.camera_alt, size: 60, color: Colors.white54),
-              SizedBox(height: 8),
-              Text(
-                'Cámara simulada (Device Preview)',
-                style: TextStyle(color: Colors.white54),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+    // if (kIsWeb) {
+    //   return Container(
+    //     color: Colors.black87,
+    //     child: const Center(
+    //       child: Column(
+    //         mainAxisSize: MainAxisSize.min,
+    //         children: [
+    //           Icon(Icons.camera_alt, size: 60, color: Colors.white54),
+    //           SizedBox(height: 8),
+    //           Text(
+    //             'Cámara simulada (Device Preview)',
+    //             style: TextStyle(color: Colors.white54),
+    //           ),
+    //         ],
+    //       ),
+    //     ),
+    //   );
+    // }
 
     return Positioned.fill(
       child: FittedBox(
