@@ -2,7 +2,7 @@ name: howmuch
 description: "Howmuch is not just change your money, it's an experience."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.2.0+3
 
 environment:
   sdk: ^3.10.1
