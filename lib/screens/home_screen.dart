@@ -285,64 +285,84 @@ class _HomeScreenState extends State<HomeScreen> {
     ColorScheme colorScheme,
   ) {
     return InkWell(
-      onTap: provider.useCustomCurrency
-          ? null
-          : () async {
-              final selected = await CurrencySearchSheet.show(
-                context,
-                provider.availableCurrencies,
-                'Moneda de Destino',
-              );
-              if (selected != null) provider.setTargetCurrency(selected);
+      onTap: () async {
+        // 1. Si hay una moneda personalizada, la ponemos al inicio de la lista
+        final List<Currency> displayList = [...provider.availableCurrencies];
+        if (provider.useCustomCurrency) {
+          final customCurrency = Currency(
+            code: provider.customCode,
+            name: provider.customName,
+            symbol: '',
+            isCustom: true,
+          );
+          displayList.insert(0, customCurrency);
+        }
+
+        // 2. Usar el nuevo extraAction para el botón de "Crear"
+        final selected = await CurrencySearchSheet.show(
+          context,
+          displayList,
+          'Moneda de Destino',
+          extraAction: ActionButton(
+            icon: Icons.add_rounded,
+            label: provider.useCustomCurrency
+                ? 'Editar moneda personalizada'
+                : 'Crear moneda personalizada',
+            onPressed: () {
+              Navigator.pop(context); // Cerrar el search sheet
+              CustomCurrencyDialog.show(context);
             },
+          ),
+        );
+
+        if (selected != null) {
+          if (selected.isCustom) {
+            // Ya está seleccionada si pulsó en la lista, pero por si acaso
+            // En este caso no hacemos nada o reafirmamos.
+          } else {
+            provider.disableCustomCurrency();
+            provider.setTargetCurrency(selected);
+          }
+        }
+      },
       borderRadius: BorderRadius.circular(16),
       child: CurrencyCard(
         label: 'Hacia (Ver)',
         child: Row(
           children: [
+            // --- AQUÍ VA EL CÓDIGO QUE PREGUNTABAS ---
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Row(
                   children: [
-                    if (provider.targetCurrency != null) ...[
-                      CurrencyIcon(
-                        currency: provider.targetCurrency!,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          provider.useCustomCurrency
-                              ? provider.customName
-                              : '${provider.targetCurrency!.code} - ${provider.targetCurrency!.name}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: provider.useCustomCurrency
-                                ? colorScheme.primary
-                                : null,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+                    // Icono dinámico
+                    CurrencyIcon(
+                      currency: provider.targetCurrency ??
+                          const Currency(code: '', name: '', symbol: ''),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        provider.targetCurrency != null
+                            ? '${provider.targetCurrency!.code} - ${provider.targetCurrency!.name}'
+                            : 'Seleccionar...',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: provider.useCustomCurrency
+                              ? colorScheme.primary
+                              : null,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
-                    ] else
-                      const Text(
-                        'Seleccionar...',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    if (!provider.useCustomCurrency) ...[
-                      const Spacer(),
-                      const Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(width: 8),
-                    ],
+                    ),
                   ],
                 ),
               ),
             ),
+            // Botones de acción (Edit/Delete)
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -350,18 +370,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   key: _keyCustomCurrencyButton,
                   icon: Icon(
                     Icons.edit_rounded,
-                    color: provider.useCustomCurrency
-                        ? colorScheme.primary
-                        : Colors.grey,
+                    color: provider.useCustomCurrency ? colorScheme.primary : Colors.grey,
                   ),
                   onPressed: () => CustomCurrencyDialog.show(context),
                 ),
                 if (provider.useCustomCurrency)
                   IconButton(
-                    icon: const Icon(
-                      Icons.close_rounded,
-                      color: Colors.redAccent,
-                    ),
+                    icon: const Icon(Icons.close_rounded, color: Colors.redAccent),
                     onPressed: () => provider.disableCustomCurrency(),
                   ),
               ],

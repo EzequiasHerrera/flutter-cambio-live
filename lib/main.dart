@@ -45,8 +45,8 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [ChangeNotifierProvider(create: (_) => AppProvider())],
       child: MaterialApp(
-        locale: DevicePreview.locale(context),
-        builder: DevicePreview.appBuilder,
+        //locale: DevicePreview.locale(context),
+        //builder: DevicePreview.appBuilder,
 
         title: 'Howmuch',
         debugShowCheckedModeBanner: false,

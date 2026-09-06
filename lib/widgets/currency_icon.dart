@@ -19,7 +19,7 @@ class CurrencyIcon extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     
     // 🌟 CASO 1: MONEDA PERSONALIZADA
-    if (currency.isCustom) {
+    if (currency.isCustom || currency.code == 'CUSTOM' || currency.code == 'CUS') {
       return Container(
         width: width,
         height: height,

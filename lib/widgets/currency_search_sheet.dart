@@ -5,19 +5,30 @@ import 'currency_icon.dart';
 class CurrencySearchSheet extends StatefulWidget {
   final List<Currency> currencies;
   final String title;
+  final Widget? extraAction;
 
   const CurrencySearchSheet({
     super.key,
     required this.currencies,
     required this.title,
+    this.extraAction,
   });
 
-  static Future<Currency?> show(BuildContext context, List<Currency> currencies, String title) {
+  static Future<Currency?> show(
+    BuildContext context,
+    List<Currency> currencies,
+    String title, {
+    Widget? extraAction,
+  }) {
     return showModalBottomSheet<Currency>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => CurrencySearchSheet(currencies: currencies, title: title),
+      builder: (context) => CurrencySearchSheet(
+        currencies: currencies,
+        title: title,
+        extraAction: extraAction,
+      ),
     );
   }
 
@@ -100,6 +111,11 @@ class _CurrencySearchSheetState extends State<CurrencySearchSheet> {
               onChanged: _filterCurrencies,
             ),
           ),
+          if (widget.extraAction != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: widget.extraAction!,
+            ),
           Expanded(
             child: ListView.builder(
               itemCount: filteredCurrencies.length,
