@@ -52,7 +52,16 @@ class _ActionButtonState extends State<ActionButton> {
           ? ElevatedButton.icon(
               onPressed: _handlePress,
               icon: Icon(widget.icon, size: 30),
-              label: Text(widget.label!),
+              label: Text(
+                widget.label!,
+                maxLines: 1,
+                overflow: TextOverflow.clip,
+                softWrap: false,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               style: _buildStyle(colorScheme),
             )
           : ElevatedButton(

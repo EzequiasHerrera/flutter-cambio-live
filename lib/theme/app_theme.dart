@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppTheme {
   static const Color primaryColor = Color(0xFFFF9900);
@@ -52,6 +53,14 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: scheme.surface,
+      appBarTheme: AppBarTheme(
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          systemNavigationBarColor: Colors.transparent,
+          statusBarIconBrightness: scheme.brightness == Brightness.light ? Brightness.dark : Brightness.light,
+          systemNavigationBarIconBrightness: scheme.brightness == Brightness.light ? Brightness.dark : Brightness.light,
+        ),
+      ),
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
       hoverColor: Colors.transparent,

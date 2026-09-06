@@ -106,7 +106,7 @@ class _CurrencySearchSheetState extends State<CurrencySearchSheet> {
               itemBuilder: (context, index) {
                 final currency = filteredCurrencies[index];
                 return ListTile(
-                  leading: CurrencyIcon(currencyCode: currency.code),
+                  leading: CurrencyIcon(currency: currency),
                   title: Text(
                     currency.code,
                     style: const TextStyle(fontWeight: FontWeight.bold),

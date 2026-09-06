@@ -20,6 +20,7 @@ class AppProvider with ChangeNotifier {
 
   // State: Custom Currency
   bool _useCustomCurrency = false;
+  String _customCode = "CUS";
   String _customName = "Personalizada";
   double _customRate = 1.0;
 
@@ -28,12 +29,26 @@ class AppProvider with ChangeNotifier {
 
   // Data: Available Currencies
   final List<Currency> availableCurrencies = [
-    Currency(code: 'USD', name: 'US Dollar', symbol: r'$'),
+    Currency(code: 'USD', name: 'Dólar Estadounidense', symbol: r'$'),
     Currency(code: 'EUR', name: 'Euro', symbol: '€'),
-    Currency(code: 'BRL', name: 'Real Brasileiro', symbol: r'R$'),
     Currency(code: 'ARS', name: 'Peso Argentino', symbol: r'$'),
-    Currency(code: 'GBP', name: 'British Pound', symbol: '£'),
-    Currency(code: 'JPY', name: 'Japanese Yen', symbol: '¥'),
+    Currency(code: 'BRL', name: 'Real Brasileño', symbol: r'R$'),
+    Currency(code: 'MXN', name: 'Peso Mexicano', symbol: r'$'),
+    Currency(code: 'CLP', name: 'Peso Chileno', symbol: r'$'),
+    Currency(code: 'UYU', name: 'Peso Uruguayo', symbol: r'$U'),
+    Currency(code: 'GBP', name: 'Libra Esterlina', symbol: '£'),
+    Currency(code: 'JPY', name: 'Yen Japonés', symbol: '¥'),
+    Currency(code: 'CAD', name: 'Dólar Canadiense', symbol: r'C$'),
+    Currency(code: 'CNY', name: 'Yuan Chino', symbol: '¥'),
+    Currency(code: 'CHF', name: 'Franco Suizo', symbol: 'Fr'),
+    Currency(code: 'AUD', name: 'Dólar Australiano', symbol: r'A$'),
+    Currency(code: 'NZD', name: 'Dólar Neozelandés', symbol: r'NZ$'),
+    Currency(code: 'KRW', name: 'Won Surcoreano', symbol: '₩'),
+    Currency(code: 'COP', name: 'Peso Colombiano', symbol: r'$'),
+    Currency(code: 'PEN', name: 'Sol Peruano', symbol: 'S/'),
+    Currency(code: 'PYG', name: 'Guaraní Paraguayo', symbol: '₲'),
+    Currency(code: 'BOB', name: 'Boliviano', symbol: 'Bs'),
+    Currency(code: 'DOP', name: 'Peso Dominicano', symbol: r'RD$'),
   ];
 
   // Constructor
@@ -52,6 +67,7 @@ class AppProvider with ChangeNotifier {
     if (settings != null) {
       // 1. Restaurar estados básicos
       _useCustomCurrency = settings['useCustom'] ?? false;
+      _customCode = settings['customCode'] ?? "CUS";
       _customName = settings['customName'] ?? "Personalizada";
       _customRate = settings['customRate'] ?? 1.0;
 
@@ -68,9 +84,10 @@ class AppProvider with ChangeNotifier {
       if (_useCustomCurrency) {
         // Si era personalizada, reconstruimos el objeto Currency especial
         _targetCurrency = Currency(
-          code: 'CUSTOM',
+          code: _customCode,
           name: _customName,
           symbol: '',
+          isCustom: true,
         );
       } else {
         // Si era normal, buscamos en la lista
@@ -121,6 +138,8 @@ class AppProvider with ChangeNotifier {
 
   bool get useCustomCurrency => _useCustomCurrency;
 
+  String get customCode => _customCode;
+
   String get customName => _customName;
 
   double get customRate => _customRate;
@@ -164,11 +183,12 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setCustomCurrency(String name, double rate) async {
+  void setCustomCurrency(String code, String name, double rate) async {
+    _customCode = code;
     _customName = name;
     _customRate = rate;
     _useCustomCurrency = true;
-    _targetCurrency = Currency(code: 'CUSTOM', name: name, symbol: '');
+    _targetCurrency = Currency(code: code, name: name, symbol: '', isCustom: true);
     await _saveEverything();
     notifyListeners();
   }
@@ -176,8 +196,9 @@ class AppProvider with ChangeNotifier {
   Future<void> _saveEverything() async {
     final settings = {
       'baseCode': _baseCurrency?.code,
-      'targetCode': _targetCurrency?.code,
+      'targetCode': _useCustomCurrency ? null : _targetCurrency?.code,
       'useCustom': _useCustomCurrency,
+      'customCode': _customCode,
       'customName': _customName,
       'customRate': _customRate,
       'cart': _cart.map((item) => item.toJson()).toList(),

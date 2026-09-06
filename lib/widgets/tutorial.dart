@@ -21,21 +21,35 @@ class Tutorial {
       focusAnimationDuration: const Duration(milliseconds: 800),
       unFocusAnimationDuration: const Duration(milliseconds: 600),
       pulseEnable: false,
-
+      alignSkip: Alignment.bottomCenter,
       skipWidget: Padding(
-        padding: const EdgeInsets.only(top: 12.0, right: 16.0),
-        child: ActionButton(
-          label: "Omitir",
-          icon: Icons.skip_next_rounded,
-          isPrimary:
-              true, // Secundario para que no compita visualmente con Howie
-          width: 150, // Ancho acotado para el botón flotante
-          onPressed: () {
-            tutorial.skip();
-          },
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).padding.bottom + 100.0,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            ActionButton(
+              label: "Omitir",
+              icon: Icons.skip_next_rounded,
+              isPrimary: false,
+              width: 160,
+              onPressed: () {
+                tutorial.skip();
+              },
+            ),
+            ActionButton(
+              label: "Siguiente",
+              icon: Icons.arrow_forward_rounded,
+              isPrimary: true,
+              width: 160,
+              onPressed: () {
+                tutorial.next();
+              },
+            ),
+          ],
         ),
       ),
-
       onFinish: onFinish,
       onSkip: () {
         onFinish?.call();
@@ -178,10 +192,12 @@ class Tutorial {
           howieAndBubbleDialog(
             align: ContentAlign.top,
             howieAlignment: Alignment.bottomCenter,
-            howieSize: 160,
+            howieSize: 180,
             bubbleText:
                 "Este es el navegador hacia el conversor manual 💱, tu carrito de compras 🛒 o directo a la cámara 📷",
             bubbleDirection: BubbleDirection.middlebottom,
+            howieOffsetRatio: const Offset(0.0, -0.2),
+            bubbleOffsetRatio: const Offset(0.0, -0.2),
           ),
         ],
       ),

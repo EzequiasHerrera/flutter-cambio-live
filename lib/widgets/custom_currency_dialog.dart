@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:howmuch/providers/app_provider.dart';
 import 'package:howmuch/widgets/action_button.dart';
@@ -20,6 +21,7 @@ class CustomCurrencyDialog extends StatefulWidget {
 
 class _CustomCurrencyDialogState extends State<CustomCurrencyDialog>
     with SingleTickerProviderStateMixin {
+  late TextEditingController _codeController;
   late TextEditingController _nameController;
   late TextEditingController _rateController;
   late AnimationController _floatingController;
@@ -28,10 +30,9 @@ class _CustomCurrencyDialogState extends State<CustomCurrencyDialog>
   void initState() {
     super.initState();
     final provider = Provider.of<AppProvider>(context, listen: false);
+    _codeController = TextEditingController(text: provider.customCode);
     _nameController = TextEditingController(text: provider.customName);
-    _rateController = TextEditingController(
-      text: provider.customRate > 0 ? provider.customRate.toString() : '',
-    );
+    _rateController = TextEditingController(text: provider.customRate > 0 ? provider.customRate.toString() : '');
 
     // Animación infinita de rebote
     _floatingController = AnimationController(
@@ -42,6 +43,7 @@ class _CustomCurrencyDialogState extends State<CustomCurrencyDialog>
 
   @override
   void dispose() {
+    _codeController.dispose();
     _nameController.dispose();
     _rateController.dispose();
     _floatingController.dispose();
@@ -49,12 +51,13 @@ class _CustomCurrencyDialogState extends State<CustomCurrencyDialog>
   }
 
   void _onSave() {
+    final code = _codeController.text.trim().toUpperCase();
     final name = _nameController.text.trim();
     final rateText = _rateController.text.trim().replaceAll(',', '.');
     final rate = double.tryParse(rateText);
 
-    if (name.isNotEmpty && rate != null && rate > 0) {
-      context.read<AppProvider>().setCustomCurrency(name, rate);
+    if (name.isNotEmpty && code.isNotEmpty && rate != null && rate > 0) {
+      context.read<AppProvider>().setCustomCurrency(code, name, rate);
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -107,6 +110,24 @@ class _CustomCurrencyDialogState extends State<CustomCurrencyDialog>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            TextField(
+              controller: _codeController,
+              // 1. Cambia el tipo de teclado a texto
+              keyboardType: TextInputType.text,
+              // 2. Agrega formatters para filtrar solo letras
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')),
+              ],
+              // 3. Opcional: Forzar que el teclado sugiera mayúsculas
+              textCapitalization: TextCapitalization.characters,
+              maxLength: 3,
+              decoration: InputDecoration(
+                labelText: 'Código de Moneda',
+                prefixIcon: const Icon(Icons.key),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 20),
             TextField(
               controller: _nameController,
               textCapitalization: TextCapitalization.sentences,

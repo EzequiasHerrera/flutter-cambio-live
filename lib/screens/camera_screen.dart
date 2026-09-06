@@ -318,10 +318,10 @@ class _CameraScreenState extends State<CameraScreen>
   @override
   Widget build(BuildContext context) {
     if (!_camera.isInitialized || _camera.controller == null || !_camera.controller!.value.isInitialized) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: Colors.black,
         body: Center(
-          child: CircularProgressIndicator(color: Colors.white),
+          child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
         ),
       );
     }

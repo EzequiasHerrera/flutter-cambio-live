@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 class CurrencyService {
   // Apunta a tu Worker
   static const String _proxyUrl =
-      'https://howmuch-api-proxy.ezequiasherrera99.workers.dev';
+      'https://howmuch-currencies-api.crankylabs.workers.dev';
 
   // Guardamos los rates en memoria para no llamar al proxy a cada rato
   Map<String, double>? _cachedRates;

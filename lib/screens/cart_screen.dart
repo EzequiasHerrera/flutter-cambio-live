@@ -196,15 +196,6 @@ class _CartScreenState extends State<CartScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Pequeño indicador decorativo
-            Container(
-              width: 50,
-              height: 5,
-              margin: const EdgeInsets.only(bottom: 24),
-              decoration: BoxDecoration(
-                color: colorScheme.outlineVariant.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -222,7 +213,7 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${provider.cart.length} productos',
+                      '${provider.cart.length} producto${provider.cart.length == 1 ? '' : 's'}',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -313,7 +304,7 @@ class _CartItemWidgetState extends State<_CartItemWidget> {
                   Row(
                     children: [
                       CurrencyIcon(
-                        currencyCode: widget.item.originalCurrency.code,
+                        currency: widget.item.originalCurrency,
                         width: 20,
                         height: 14,
                       ),
@@ -343,7 +334,7 @@ class _CartItemWidgetState extends State<_CartItemWidget> {
                   Row(
                     children: [
                       CurrencyIcon(
-                        currencyCode: widget.item.targetCurrency.code,
+                        currency: widget.item.targetCurrency,
                         width: 28,
                         height: 20,
                       ),

@@ -95,31 +95,37 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
-          return Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: RefreshIndicator(
-              onRefresh: () => provider.fetchRates(),
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  children: [
-                    _buildHeader(),
-                    const SizedBox(height: 20),
-                    if (provider.errorMessage != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Text(
-                          provider.errorMessage!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
+          return Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600), // Evita que se estire demasiado en tablets
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 20.0),
+                child: RefreshIndicator(
+                  onRefresh: () => provider.fetchRates(),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      children: [
+                        _buildHeader(),
+                        const SizedBox(height: 20),
+                        if (provider.errorMessage != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Text(
+                              provider.errorMessage!,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    _buildConverterCard(context, provider, colorScheme),
-                    const SizedBox(height: 20),
-                  ],
+                        _buildConverterCard(context, provider, colorScheme),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -246,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             children: [
               if (value != null) ...[
-                CurrencyIcon(currencyCode: value.code),
+                CurrencyIcon(currency: value),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -297,56 +303,44 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                child: provider.useCustomCurrency
-                    ? Row(
-                        children: [
-                          const Icon(Icons.stars_rounded, color: Colors.orange),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              provider.customName,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: colorScheme.primary,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ),
-                        ],
-                      )
-                    : Row(
-                        children: [
-                          if (provider.targetCurrency != null) ...[
-                            CurrencyIcon(
-                              currencyCode: provider.targetCurrency!.code,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                '${provider.targetCurrency!.code} - ${provider.targetCurrency!.name}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                          ] else
-                            const Text(
-                              'Seleccionar...',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          const Spacer(),
-                          const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(width: 8),
-                        ],
+                child: Row(
+                  children: [
+                    if (provider.targetCurrency != null) ...[
+                      CurrencyIcon(
+                        currency: provider.targetCurrency!,
                       ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          provider.useCustomCurrency
+                              ? provider.customName
+                              : '${provider.targetCurrency!.code} - ${provider.targetCurrency!.name}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: provider.useCustomCurrency
+                                ? colorScheme.primary
+                                : null,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ] else
+                      const Text(
+                        'Seleccionar...',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    if (!provider.useCustomCurrency) ...[
+                      const Spacer(),
+                      const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
               ),
             ),
             Row(

@@ -67,7 +67,7 @@ class _PriceCardState extends State<PriceCard> {
                       Row(
                         children: [
                           CurrencyIcon(
-                            currencyCode: provider.baseCurrency?.code ?? '',
+                            currency: provider.baseCurrency!,
                             width: 24,
                             height: 16,
                           ),
@@ -82,7 +82,7 @@ class _PriceCardState extends State<PriceCard> {
                             ),
                           ),
                           CurrencyIcon(
-                            currencyCode: provider.targetCurrency?.code ?? '',
+                            currency: provider.targetCurrency!,
                             width: 24,
                             height: 16,
                           ),

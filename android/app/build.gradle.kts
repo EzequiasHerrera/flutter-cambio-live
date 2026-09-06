@@ -58,7 +58,7 @@ android {
 
             // Habilitamos R8 (minificación) y vinculamos el archivo de reglas
             isMinifyEnabled = true
-            isShrinkResources = false
+            isShrinkResources = true
 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
