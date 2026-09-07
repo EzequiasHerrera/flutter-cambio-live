@@ -23,11 +23,9 @@ void main() async {
     DeviceOrientation.landscapeRight,
   ]);
 
-  // 3. Estilo del Sistema: Barras transparentes
+  // 3. Estilo del Sistema: Iconos adaptables (los colores los maneja el sistema en Android 15+)
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
