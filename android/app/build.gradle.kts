@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,19 +8,20 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-import java.io.FileInputStream
-        import java.util.Properties
-
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
-    localPropertiesFile.inputStream().use { localProperties.load(it) }
+    localPropertiesFile.inputStream().use { stream ->
+        localProperties.load(stream)
+    }
 }
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 if (keystorePropertiesFile.exists()) {
-    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+    keystorePropertiesFile.inputStream().use { stream ->
+        keystoreProperties.load(stream)
+    }
 }
 
 android {
@@ -31,7 +35,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -46,17 +50,19 @@ android {
         create("release") {
             keyAlias = keystoreProperties.getProperty("keyAlias")
             keyPassword = keystoreProperties.getProperty("keyPassword")
-            storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
+
+            // Usamos una variable explícita para evitar el error de resolución de 'it'
+            keystoreProperties.getProperty("storeFile")?.let { path ->
+                storeFile = file(path)
+            }
+
             storePassword = keystoreProperties.getProperty("storePassword")
         }
     }
 
     buildTypes {
         getByName("release") {
-            // Asigna la clave de firma de release configurada arriba
             signingConfig = signingConfigs.getByName("release")
-
-            // Habilitamos R8 (minificación) y vinculamos el archivo de reglas
             isMinifyEnabled = true
             isShrinkResources = true
 
